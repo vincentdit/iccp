@@ -1,0 +1,163 @@
+<div class="page">
+  <app-page-header [title]="'nav.financeWorkspace' | t" [subtitle]="'ws.subtitle' | t" />
+  <app-segmented [segments]="tabs()" [(value)]="tab" [label]="'ws.sections' | t" />
+
+  @switch (tab()) {
+    @case ('overview') {
+      @if (dash(); as d) {
+        <div class="metrics">
+          <div class="card metric lead">
+            <div class="label">{{ 'ws.totalOutstanding' | t }}</div>
+            <div class="value num">{{ i18n.money(d.totalOutstandingTzs, 'TZS') }}</div>
+            <div class="label">{{ 'ws.staffOwed' | t: { n: d.staffWithOutstanding } }}</div>
+          </div>
+          <button class="card metric clickable" type="button" (click)="tab.set('batches')">
+            <div class="value num" [class.warn]="batchCount('RECONCILED')">{{ batchCount('RECONCILED') }}</div>
+            <div class="label">{{ 'ws.awaitingReview' | t }}</div>
+          </button>
+          <button class="card metric clickable" type="button" (click)="tab.set('batches')">
+            <div class="value num" [class.warn]="d.openQuarantine">{{ d.openQuarantine }}</div>
+            <div class="label">{{ 'ws.quarantined' | t }}</div>
+          </button>
+          <button class="card metric clickable" type="button" (click)="tab.set('allocations')">
+            <div class="value num">{{ d.pendingManualAllocations }}</div>
+            <div class="label">{{ 'ws.pendingAllocations' | t }}</div>
+          </button>
+        </div>
+
+        <div class="grid grid-2 section">
+          <section class="card">
+            <h2 class="t-headline">{{ 'ws.byType' | t }}</h2>
+            <div class="bars">
+              @for (l of d.liabilities; track l.claimTypeCode + l.currency) {
+                <div class="bar-row">
+                  <div class="bar-label"><span>{{ l.claimTypeEn }}</span><span class="num secondary">{{ i18n.money(l.outstanding, l.currency) }}</span></div>
+                  <div class="bar"><span [style.width.%]="l.currency === 'TZS' ? (100 * l.outstanding) / maxLiability() : 4" [class.other]="l.currency !== 'TZS'"></span></div>
+                  <div class="t-caption secondary">{{ 'ws.claimsCount' | t: { n: l.claims } }}</div>
+                </div>
+              } @empty {
+                <p class="secondary t-subhead">{{ 'ws.nothingOwed' | t }}</p>
+              }
+            </div>
+          </section>
+          <section class="card">
+            <h2 class="t-headline">{{ 'ws.queriesByAge' | t }}</h2>
+            <div class="ages">
+              @for (b of ['0-2d', '3-7d', '8d+']; track b) {
+                @let n = ageCount(b);
+                <button class="age" type="button" [class.late]="b === '8d+' && n > 0" (click)="tab.set('desk')">
+                  <span class="value num">{{ n }}</span>
+                  <span class="t-footnote secondary">{{ bucketLabel(b) }}</span>
+                </button>
+              }
+            </div>
+            <p class="t-footnote secondary" style="margin-top: 14px">{{ 'ws.slaNote' | t }}</p>
+          </section>
+        </div>
+        <p class="group-foot">{{ 'diary.asAt' | t: { date: i18n.dateTime(d.asAt) } }}</p>
+      } @else {
+        <div class="metrics">@for (i of [1, 2, 3, 4]; track i) {<div class="card skeleton" style="height: 96px"></div>}</div>
+      }
+    }
+
+    @case ('batches') {
+      @if (session.can()?.financeImport) {
+        <label class="drop" [class.over]="dragging()" (dragover)="$event.preventDefault(); dragging.set(true)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+          <input type="file" accept=".csv,text/csv" (change)="onFile(file)" #file class="visually-hidden" [disabled]="uploading()" />
+          <span class="tile indigo"><app-icon [name]="uploading() ? 'clock' : 'fileUp'" /></span>
+          <span class="grow">
+            <span class="t-headline">{{ (uploading() ? 'ws.import.uploading' : 'ws.import.title') | t }}</span>
+            <span class="t-footnote secondary">{{ 'ws.import.help' | t }}</span>
+          </span>
+          <span class="btn btn-tinted">{{ 'ws.import.choose' | t }}</span>
+        </label>
+      }
+      <div class="table-wrap section">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ 'ws.batch.file' | t }}</th><th>{{ 'manage.status' | t }}</th><th class="r">{{ 'ws.batch.rows' | t }}</th>
+              <th class="r">{{ 'ws.batch.quarantine' | t }}</th><th class="hide-sm">{{ 'ws.batch.imported' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of batches(); track b.publicId) {
+              <tr class="clickable" (click)="router.navigate(['/finance/batches', b.publicId])">
+                <td><a [routerLink]="['/finance/batches', b.publicId]" (click)="$event.stopPropagation()" class="strong">{{ b.fileName }}</a>
+                  @if (b.canApprove) {<div class="t-footnote" style="color: var(--orange)">{{ 'ws.batch.yourReview' | t }}</div>}</td>
+                <td><app-status [value]="b.status" /></td>
+                <td class="r num">{{ b.loadedCount }} / {{ b.sourceRecordCount }}</td>
+                <td class="r num" [class.warn]="b.openQuarantine">{{ b.openQuarantine || '—' }}</td>
+                <td class="hide-sm secondary">{{ i18n.dateTime(b.createdAt) }}<br /><span class="t-footnote">{{ b.importedBy }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!batches().length) {<app-empty icon="layers" [title]="'ws.batch.empty' | t" />}
+      </div>
+    }
+
+    @case ('desk') {
+      <div class="sub-filter"><app-segmented [segments]="deskFilters()" [(value)]="deskFilter" /></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>{{ 'ws.desk.staff' | t }}</th><th>{{ 'ws.desk.claim' | t }}</th><th>{{ 'manage.status' | t }}</th><th class="hide-sm">{{ 'ws.desk.due' | t }}</th></tr>
+          </thead>
+          <tbody>
+            @for (q of desk(); track q.publicId) {
+              <tr class="clickable" (click)="router.navigate(['/finance/desk', q.publicId])">
+                <td><a [routerLink]="['/finance/desk', q.publicId]" (click)="$event.stopPropagation()" class="strong">{{ q.staffName }}</a><div class="t-footnote secondary">{{ q.unitName }}</div></td>
+                <td>{{ q.claimRef }}<div class="t-footnote secondary">{{ ('query.cat.' + q.category) | t }}</div></td>
+                <td><app-status [value]="q.status" />@if (q.reopenCount) {<div class="t-footnote secondary">{{ 'ws.desk.reopened' | t: { n: q.reopenCount } }}</div>}</td>
+                <td class="hide-sm" [class.overdue]="q.overdue">{{ q.dueAt && q.status !== 'RESPONDED' ? i18n.until(q.dueAt) : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!desk().length) {<app-empty icon="checkCircle" [title]="'ws.desk.empty' | t" />}
+      </div>
+    }
+
+    @case ('allocations') {
+      <div class="row section-top">
+        <p class="t-subhead secondary grow">{{ 'ws.alloc.help' | t }}</p>
+        @if (session.can()?.financeImport) {
+          <button class="btn btn-filled" type="button" (click)="allocating.set(true)"><app-icon name="plus" /> {{ 'ws.alloc.new' | t }}</button>
+        }
+      </div>
+      <div class="list">
+        @for (a of pending(); track a.id) {
+          <div class="list-row">
+            <span class="grow">
+              <span class="title">{{ a.staffName }}: {{ i18n.money(a.amount) }}</span>
+              <span class="sub">{{ 'ws.alloc.line' | t: { pay: a.paymentSourceRef, claim: a.claimSourceRef, by: a.allocatedBy } }}</span>
+            </span>
+            @if (a.canApprove) {
+              <button class="btn btn-destructive" type="button" (click)="decideAllocation(a, 'reject')">{{ 'manage.reject' | t }}</button>
+              <button class="btn btn-filled" type="button" (click)="decideAllocation(a, 'approve')">{{ 'manage.approve' | t }}</button>
+            } @else {
+              <span class="badge">{{ 'ws.alloc.waiting' | t }}</span>
+            }
+          </div>
+        } @empty {
+          <app-empty icon="scale" [title]="'ws.alloc.empty' | t" />
+        }
+      </div>
+
+      <app-sheet [title]="'ws.alloc.new' | t" [open]="allocating()" (closed)="allocating.set(false)">
+        <div class="stack">
+          <label class="field"><span class="label">{{ 'ws.alloc.payment' | t }}</span><input class="input" name="p" [(ngModel)]="alloc.paymentSourceRef" placeholder="PAY-2026-…" /></label>
+          <label class="field"><span class="label">{{ 'ws.alloc.claim' | t }}</span><input class="input" name="c" [(ngModel)]="alloc.claimSourceRef" placeholder="CLM-2026-…" /></label>
+          <label class="field"><span class="label">{{ 'ws.alloc.amount' | t }}</span><input class="input num" name="a" type="number" step="0.01" [(ngModel)]="alloc.amount" /></label>
+          <label class="field"><span class="label">{{ 'ws.alloc.reverses' | t }}</span><input class="input" name="r" [(ngModel)]="alloc.reversesSourceRef" /></label>
+          <p class="t-footnote secondary">{{ 'ws.alloc.makerChecker' | t }}</p>
+        </div>
+        <div sheet-actions>
+          <button class="btn" type="button" (click)="allocating.set(false)">{{ 'common.cancel' | t }}</button>
+          <button class="btn btn-filled" type="button" (click)="createAllocation()" [disabled]="!alloc.paymentSourceRef || !alloc.claimSourceRef || !alloc.amount">{{ 'ws.alloc.submit' | t }}</button>
+        </div>
+      </app-sheet>
+    }
+  }
+</div>

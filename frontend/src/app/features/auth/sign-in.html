@@ -1,0 +1,49 @@
+<div class="wrap">
+  <div class="lang">
+    <button class="btn btn-plain" type="button" (click)="i18n.set(i18n.lang() === 'en' ? 'sw' : 'en')">
+      <app-icon name="languages" /> {{ i18n.lang() === 'en' ? 'Kiswahili' : 'English' }}
+    </button>
+  </div>
+
+  <section class="intro">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><path d="M6 9h20M16 9v16M10 25h12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+    </div>
+    <h1 class="t-large">{{ 'signin.title' | t }}</h1>
+    <p class="t-callout secondary">{{ 'signin.lede' | t }}</p>
+  </section>
+
+  @if (error()) {
+    <div class="banner red" role="alert"><app-icon name="alert" /><span>{{ error() }}</span></div>
+  }
+
+  @if (config()?.authMode === 'oidc') {
+    <button class="btn btn-filled btn-large btn-block" type="button" (click)="oidc()" [disabled]="busy()">
+      <app-icon name="lock" /> {{ 'signin.oidc' | t }}
+    </button>
+    <p class="t-footnote secondary center">{{ 'signin.oidcHelp' | t }}</p>
+  } @else if (config()?.authMode === 'dev') {
+    <div class="group-label">{{ 'signin.devLabel' | t }}</div>
+    <div class="list people">
+      @for (p of people(); track p.employeeNo) {
+        <button class="list-row" type="button" (click)="devSignIn(p)" [disabled]="!!busy()" style="--sep-inset: 64px">
+          <app-avatar [name]="p.displayName" />
+          <span class="grow">
+            <span class="title">{{ p.displayName }}</span>
+            <span class="sub">{{ p.positionTitle }}{{ roleSummary(p) ? ', ' + roleSummary(p) : '' }}</span>
+          </span>
+          @if (busy() === p.employeeNo) {
+            <span class="spinner" aria-label="Signing in"></span>
+          } @else {
+            <app-icon class="chev" name="chevronRight" />
+          }
+        </button>
+      } @empty {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="list-row"><span class="skeleton" style="width: 36px; height: 36px; border-radius: 50%"></span><span class="skeleton grow"></span></div>
+        }
+      }
+    </div>
+    <p class="group-foot">{{ 'signin.devFoot' | t }}</p>
+  }
+</div>

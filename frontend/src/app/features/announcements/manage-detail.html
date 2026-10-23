@@ -1,0 +1,171 @@
+<div class="page">
+  @if (a(); as a) {
+    <app-page-header [title]="a.titleEn || a.titleSw || ''" back="/announcements/manage" [backLabel]="'nav.manageNotices' | t">
+      @if (a.canEdit) {
+        <button class="btn" type="button" (click)="edit()"><app-icon name="pencil" /> {{ 'common.edit' | t }}</button>
+      }
+      @if (a.canSubmit) {
+        <button class="btn btn-filled" type="button" (click)="submit()" [disabled]="busy()"><app-icon name="send" /> {{ 'manage.submit' | t }}</button>
+      }
+      @if (a.canAmend) {
+        <button class="btn" type="button" (click)="edit()"><app-icon name="pencil" /> {{ 'manage.amend' | t }}</button>
+      }
+      @if (a.canWithdraw) {
+        <button class="btn btn-destructive" type="button" (click)="ask('withdraw')">{{ 'manage.withdraw' | t }}</button>
+      }
+    </app-page-header>
+
+    <div class="status-line">
+      <app-status [value]="a.status" />
+      <span class="t-subhead secondary">{{ ('category.' + a.category) | t }}, {{ 'manage.by' | t: { name: a.authorName } }}</span>
+      @if (a.publishedAt) {
+        <span class="t-subhead secondary">{{ 'detail.published' | t: { date: i18n.dateTime(a.publishedAt) } }}</span>
+      }
+    </div>
+
+    @if (a.canDecide) {
+      <div class="decide card card-raised">
+        <div class="grow">
+          <div class="t-headline">{{ 'manage.decideTitle' | t }}</div>
+          <div class="t-footnote secondary">{{ 'manage.decideText' | t }}</div>
+        </div>
+        <div class="row wrap">
+          <button class="btn btn-destructive" type="button" (click)="ask('reject')">{{ 'manage.reject' | t }}</button>
+          <button class="btn" type="button" (click)="ask('return')"><app-icon name="undo" /> {{ 'manage.return' | t }}</button>
+          <button class="btn btn-filled" type="button" (click)="ask('approve')"><app-icon name="check" /> {{ 'manage.approve' | t }}</button>
+        </div>
+      </div>
+    }
+
+    @if (a.withdrawnReason) {
+      <div class="banner red" style="margin-bottom: 16px"><app-icon name="alert" /><span>{{ 'manage.withdrawnBecause' | t: { reason: a.withdrawnReason } }}</span></div>
+    }
+
+    <div class="layout">
+      <div class="main-col">
+        @if (reach(); as r) {
+          <section class="card reach">
+            <div class="reach-head">
+              <div class="metric">
+                <div class="value num">{{ ackPct() }}%</div>
+                <div class="label">{{ (r.requiresAck ? 'reach.acknowledged' : 'reach.read') | t }}</div>
+              </div>
+              <div class="metric">
+                <div class="value num">{{ i18n.number(r.targeted) }}</div>
+                <div class="label">{{ 'reach.targeted' | t }}</div>
+              </div>
+              <div class="metric">
+                <div class="value num">{{ i18n.number(r.read) }}</div>
+                <div class="label">{{ 'reach.opened' | t }}</div>
+              </div>
+            </div>
+            <div class="bar" role="img" [attr.aria-label]="'reach.barLabel' | t: { read: readPct(), ack: ackPct() }">
+              <span class="read" [style.width.%]="readPct()"></span>
+              @if (r.requiresAck) {
+                <span class="ack" [style.width.%]="ackPct()"></span>
+              }
+            </div>
+            <table class="table units">
+              <thead>
+                <tr><th>{{ 'reach.unit' | t }}</th><th class="r">{{ 'reach.targeted' | t }}</th><th class="r">{{ 'reach.opened' | t }}</th>
+                  @if (r.requiresAck) {<th class="r">{{ 'reach.acknowledged' | t }}</th>}</tr>
+              </thead>
+              <tbody>
+                @for (u of r.byUnit; track u.unitCode) {
+                  <tr><td>{{ u.unitName }}</td><td class="r num">{{ u.targeted }}</td><td class="r num">{{ u.read }}</td>
+                    @if (r.requiresAck) {<td class="r num">{{ u.acknowledged }}</td>}</tr>
+                }
+              </tbody>
+            </table>
+            @if (r.requiresAck && r.notAcknowledged.length) {
+              <div class="group-label" style="margin-top: 16px">{{ 'reach.pending' | t: { n: r.notAcknowledged.length } }}</div>
+              <div class="pending">
+                @for (p of r.notAcknowledged; track p.publicId) {
+                  <a class="badge" [routerLink]="['/directory', p.publicId]">{{ p.displayName }}</a>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <section class="card preview">
+          @if (a.titleEn) {
+            <div class="lang-label">English</div>
+            <h2 class="t-title2">{{ a.titleEn }}</h2>
+            <div class="prose" [innerHTML]="a.bodyEn"></div>
+          }
+          @if (a.titleSw) {
+            <div class="lang-label">Kiswahili</div>
+            <h2 class="t-title2">{{ a.titleSw }}</h2>
+            <div class="prose" [innerHTML]="a.bodySw"></div>
+          }
+        </section>
+      </div>
+
+      <aside class="side-col">
+        <div class="group-label">{{ 'manage.details' | t }}</div>
+        <ul class="list">
+          <li class="list-row"><span class="grow">{{ 'compose.audience' | t }}</span></li>
+          @for (r of a.audiences; track $index) {
+            <li class="list-row"><span class="grow secondary">{{ audienceText(r.type, r.value) }}</span></li>
+          }
+          <li class="list-row"><span class="grow">{{ 'compose.requiresAck' | t }}</span><span class="detail">{{ (a.requiresAck ? 'common.yes' : 'common.no') | t }}</span></li>
+          <li class="list-row"><span class="grow">{{ 'compose.priority' | t }}</span><span class="detail">{{ ('priority.' + a.priority) | t }}</span></li>
+          <li class="list-row"><span class="grow">{{ 'compose.classification' | t }}</span><span class="detail">{{ ('class.' + a.classification) | t }}</span></li>
+          @if (a.expiresAt) {
+            <li class="list-row"><span class="grow">{{ 'compose.expires' | t }}</span><span class="detail">{{ i18n.date(a.expiresAt) }}</span></li>
+          }
+          @if (a.approverName) {
+            <li class="list-row"><span class="grow">{{ 'manage.approvedBy' | t }}</span><span class="detail">{{ a.approverName }}</span></li>
+          }
+        </ul>
+
+        @if (a.decisions.length) {
+          <div class="group-label">{{ 'manage.history' | t }}</div>
+          <ul class="list">
+            @for (d of a.decisions; track d.stepNo) {
+              <li class="list-row">
+                <span class="grow">
+                  <span class="title"><app-status [value]="d.decision" /> {{ d.approverName }}</span>
+                  @if (d.comment) {<span class="sub">{{ d.comment }}</span>}
+                  <span class="sub">{{ i18n.dateTime(d.decidedAt) }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (a.versions.length > 1) {
+          <div class="group-label">{{ 'manage.versions' | t }}</div>
+          <ul class="list">
+            @for (v of a.versions; track v.versionNo) {
+              <li class="list-row">
+                <span class="grow">
+                  <span class="title">{{ 'manage.version' | t: { v: v.versionNo } }}</span>
+                  <span class="sub">{{ v.changeNote || v.titleEn }}, {{ i18n.dateTime(v.createdAt) }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </aside>
+    </div>
+
+    <app-sheet [title]="('manage.sheet.' + decision()) | t" [open]="!!decision()" (closed)="decision.set(null)">
+      <p class="t-subhead secondary" style="margin-bottom: 12px">{{ ('manage.sheetText.' + decision()) | t }}</p>
+      <label class="field">
+        <span class="label">{{ (decision() === 'approve' ? 'manage.commentOptional' : 'manage.reason') | t }}</span>
+        <textarea class="textarea" [(ngModel)]="comment" name="comment" maxlength="1000"></textarea>
+      </label>
+      <div sheet-actions>
+        <button class="btn" type="button" (click)="decision.set(null)">{{ 'common.cancel' | t }}</button>
+        <button class="btn" [class.btn-filled]="decision() === 'approve' || decision() === 'return'" [class.btn-destructive]="decision() === 'reject' || decision() === 'withdraw'"
+          type="button" (click)="decide()" [disabled]="busy() || (decision() !== 'approve' && !comment.trim())">
+          {{ ('manage.' + decision()) | t }}
+        </button>
+      </div>
+    </app-sheet>
+  } @else {
+    <div class="stack" style="margin-top: 40px"><div class="skeleton" style="height: 34px; width: 60%"></div><div class="skeleton" style="height: 200px"></div></div>
+  }
+</div>

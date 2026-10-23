@@ -1,0 +1,86 @@
+<a class="skip" href="#main">{{ 'shell.skip' | t }}</a>
+
+<aside class="sidebar" [attr.aria-label]="'shell.navigation' | t">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><path d="M6 9h20M16 9v16M10 25h12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+    </div>
+    <div>
+      <div class="t-headline">ICCP</div>
+      <div class="t-caption secondary">TIRDO</div>
+    </div>
+  </div>
+
+  <form class="search" role="search" (ngSubmit)="search()">
+    <app-icon name="search" />
+    <input class="input" type="search" name="q" [(ngModel)]="query" [placeholder]="'shell.searchPeople' | t" [attr.aria-label]="'shell.searchPeople' | t" />
+  </form>
+
+  <nav>
+    @for (item of primary(); track item.path) {
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }" ariaCurrentWhenActive="page">
+        <span class="tile" [class]="item.tile"><app-icon [name]="item.icon" /></span>
+        <span class="grow">{{ item.label }}</span>
+        @if (item.badge && item.badge() > 0) {
+          <span class="count">{{ item.badge() }}</span>
+        }
+      </a>
+    }
+    @if (work().length) {
+      <div class="nav-section">{{ 'nav.work' | t }}</div>
+      @for (item of work(); track item.path) {
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <span class="tile" [class]="item.tile"><app-icon [name]="item.icon" /></span>
+          <span class="grow">{{ item.label }}</span>
+        </a>
+      }
+    }
+  </nav>
+
+  <div class="spacer"></div>
+
+  <div class="me">
+    <a class="me-link" routerLink="/directory/me">
+      <app-avatar [name]="session.me()?.displayName ?? ''" [size]="34" />
+      <span class="grow">
+        <span class="name">{{ session.me()?.displayName }}</span>
+        <span class="unit">{{ session.me()?.positionTitle || session.me()?.unitName }}</span>
+      </span>
+    </a>
+    <a class="icon-btn" routerLink="/settings" [attr.aria-label]="'nav.settings' | t" [title]="'nav.settings' | t"><app-icon name="settings" /></a>
+    <button class="icon-btn" type="button" (click)="signOut()" [attr.aria-label]="'shell.signOut' | t" [title]="'shell.signOut' | t"><app-icon name="logout" /></button>
+  </div>
+</aside>
+
+<main id="main" tabindex="-1">
+  @for (e of visibleEmergencies(); track e.publicId) {
+    <div class="emergency" role="alert">
+      <app-icon name="siren" />
+      <a class="grow" [routerLink]="['/announcements', e.publicId]">
+        <strong>{{ 'shell.emergency' | t }}</strong> {{ e.title }}
+      </a>
+      @if (e.acknowledgedAt) {
+        <button class="icon-btn" type="button" (click)="dismissed.set(dismissed().concat(e.publicId))" [attr.aria-label]="'common.dismiss' | t"><app-icon name="x" /></button>
+      }
+    </div>
+  }
+  <router-outlet />
+</main>
+
+<nav class="tabbar" [attr.aria-label]="'shell.navigation' | t">
+  @for (item of tabs(); track item.path) {
+    <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }" ariaCurrentWhenActive="page">
+      <span class="tab-icon"><app-icon [name]="item.icon" /></span>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+  <a routerLink="/more" routerLinkActive="active" ariaCurrentWhenActive="page">
+    <span class="tab-icon">
+      <app-icon name="menu" />
+      @if (session.unread() > 0) {
+        <span class="tab-badge">{{ session.unread() }}</span>
+      }
+    </span>
+    <span>{{ 'nav.more' | t }}</span>
+  </a>
+</nav>

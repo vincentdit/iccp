@@ -1,0 +1,113 @@
+<div class="page">
+  <app-page-header [title]="'nav.security' | t" [subtitle]="'sec.subtitle' | t">
+    @if (tab() === 'roles' && session.can()?.securityAdmin) {
+      <button class="btn btn-filled" type="button" (click)="granting.set(true)"><app-icon name="plus" /> {{ 'sec.grant' | t }}</button>
+    }
+  </app-page-header>
+  <app-segmented [segments]="tabs()" [(value)]="tab" />
+
+  @if (tab() === 'roles') {
+    @for (g of grouped(); track g.code) {
+      <div class="group-label role-head">
+        {{ g.name }}
+        @if (g.privileged) {<span class="badge orange"><app-icon name="lock" /> {{ 'sec.privileged' | t }}</span>}
+      </div>
+      <div class="list">
+        @for (a of g.list; track a.id) {
+          <div class="list-row" style="--sep-inset: 60px">
+            <app-avatar [name]="a.staffName" [size]="32" />
+            <span class="grow">
+              <span class="title">{{ a.staffName }} <span class="secondary t-footnote">{{ a.employeeNo }}</span></span>
+              <span class="sub">
+                {{ 'sec.from' | t: { date: i18n.date(a.startsOn) } }}@if (a.endsOn) {, {{ 'sec.until' | t: { date: i18n.date(a.endsOn) } }}}
+                @if (a.approvedBy) {, {{ 'sec.approvedBy' | t: { who: a.approvedBy } }}}
+              </span>
+            </span>
+            <button class="btn btn-plain danger" type="button" (click)="revoke(a)">{{ 'sec.revoke' | t }}</button>
+          </div>
+        }
+      </div>
+    } @empty {
+      <app-empty icon="shield" [title]="'sec.noAssignments' | t" />
+    }
+    <p class="group-foot">{{ 'sec.derivedNote' | t }}</p>
+
+    <app-sheet [title]="'sec.grant' | t" [open]="granting()" (closed)="granting.set(false)">
+      <div class="stack">
+        <div class="field">
+          <span class="label">{{ 'sec.person' | t }}</span>
+          @if (grant.staff; as s) {
+            <div class="chosen"><app-avatar [name]="s.displayName" [size]="28" /><span class="grow">{{ s.displayName }}</span><button class="btn btn-plain" type="button" (click)="grant.staff = null">{{ 'common.change' | t }}</button></div>
+          } @else {
+            <div class="search"><app-icon name="search" /><input class="input" name="sq" [(ngModel)]="staffQuery" (ngModelChange)="findStaff()" [placeholder]="'shell.searchPeople' | t" /></div>
+            @if (staffResults().length) {
+              <div class="list results">
+                @for (s of staffResults(); track s.publicId) {
+                  <button class="list-row" type="button" (click)="grant.staff = s; staffResults.set([])"><span class="grow"><span class="title">{{ s.displayName }}</span><span class="sub">{{ s.positionTitle }}</span></span></button>
+                }
+              </div>
+            }
+          }
+        </div>
+        <label class="field">
+          <span class="label">{{ 'sec.role' | t }}</span>
+          <select class="select" name="role" [ngModel]="grant.roleCode" (ngModelChange)="setRole($event)">
+            <option value="" disabled>{{ 'compose.chooseRole' | t }}</option>
+            @for (r of roles(); track r.code) {
+              @if (r.code !== 'STAFF' && r.code !== 'LINE_MANAGER' && r.code !== 'DIRECTOR') {<option [value]="r.code">{{ r.name }}{{ r.privileged ? ' 🔒' : '' }}</option>}
+            }
+          </select>
+        </label>
+        @if (grantRole()?.privileged) {
+          <div class="banner orange"><app-icon name="lock" /><span>{{ 'sec.privilegedHelp' | t }}</span></div>
+        }
+        <label class="field"><span class="label">{{ (grantRole()?.privileged ? 'sec.endsOnRequired' : 'sec.endsOn') | t }}</span><input class="input" type="date" name="end" [(ngModel)]="grant.endsOn" /></label>
+        <label class="field"><span class="label">{{ (grantRole()?.privileged ? 'sec.approvedByRequired' : 'sec.approvedByLabel') | t }}</span><input class="input" name="by" [(ngModel)]="grant.approvedBy" /></label>
+        <label class="field"><span class="label">{{ 'sec.approvalRef' | t }}</span><input class="input" name="ref" [(ngModel)]="grant.approvalRef" /></label>
+      </div>
+      <div sheet-actions>
+        <button class="btn" type="button" (click)="granting.set(false)">{{ 'common.cancel' | t }}</button>
+        <button class="btn btn-filled" type="button" (click)="submitGrant()"
+          [disabled]="!grant.staff || !grant.roleCode || (grantRole()?.privileged && (!grant.endsOn || !grant.approvedBy))">{{ 'sec.grant' | t }}</button>
+      </div>
+    </app-sheet>
+  } @else {
+    <div class="chain card" [class.ok]="chain()?.intact" [class.bad]="chain() && !chain()!.intact">
+      <app-icon [name]="chain() ? (chain()!.intact ? 'checkCircle' : 'warning') : 'fingerprint'" />
+      <div class="grow">
+        <div class="t-headline">{{ (chain() ? (chain()!.intact ? 'sec.chainOk' : 'sec.chainBroken') : 'sec.chainTitle') | t: { n: chain()?.events ?? 0, seq: chain()?.firstBrokenSeq ?? 0 } }}</div>
+        <div class="t-footnote secondary">{{ 'sec.chainHelp' | t }}</div>
+      </div>
+      <button class="btn btn-tinted" type="button" (click)="verify()">{{ 'sec.verify' | t }}</button>
+    </div>
+
+    <form class="filters" (ngSubmit)="searchAudit()">
+      <input class="input" name="actor" [(ngModel)]="filters.actor" [placeholder]="'sec.f.actor' | t" />
+      <input class="input" name="module" [(ngModel)]="filters.module" [placeholder]="'sec.f.module' | t" />
+      <input class="input" name="action" [(ngModel)]="filters.action" [placeholder]="'sec.f.action' | t" />
+      <input class="input" name="res" [(ngModel)]="filters.resourceId" [placeholder]="'sec.f.resource' | t" />
+      <button class="btn btn-filled" type="submit"><app-icon name="search" /> {{ 'sec.search' | t }}</button>
+    </form>
+    <p class="group-foot">{{ 'sec.showing' | t: { n: audit().length, total: auditTotal() } }}</p>
+
+    <div class="table-wrap">
+      <table class="table audit">
+        <thead><tr><th class="r">#</th><th>{{ 'sec.when' | t }}</th><th>{{ 'sec.who' | t }}</th><th>{{ 'sec.what' | t }}</th><th>{{ 'sec.outcome' | t }}</th></tr></thead>
+        <tbody>
+          @for (r of audit(); track r.chainSeq) {
+            <tr class="clickable" (click)="expanded.set(expanded() === r.chainSeq ? null : r.chainSeq)">
+              <td class="r num secondary">{{ r.chainSeq }}</td>
+              <td class="nowrap">{{ i18n.dateTime(r.occurredAt) }}</td>
+              <td>{{ r.actorSubject }}</td>
+              <td><strong>{{ r.module }}</strong> {{ r.action }}<div class="t-footnote secondary">{{ r.resourceType }} {{ r.resourceId }}</div></td>
+              <td><app-status [value]="r.outcome" /></td>
+            </tr>
+            @if (expanded() === r.chainSeq) {
+              <tr class="detail-row"><td colspan="5"><pre>{{ details(r) }}</pre><div class="t-footnote secondary">{{ 'sec.request' | t }} {{ r.requestId }}</div></td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -1,0 +1,106 @@
+<div class="page">
+  <app-page-header [title]="greeting()" [subtitle]="today()" />
+
+  @if (toAcknowledge().length) {
+    <a class="ack-banner" [routerLink]="['/announcements', toAcknowledge()[0].publicId]">
+      <span class="tile orange"><app-icon name="checklist" /></span>
+      <span class="grow">
+        <span class="t-headline">{{ (toAcknowledge().length === 1 ? 'home.ackOne' : 'home.ackMany') | t: { n: toAcknowledge().length } }}</span>
+        <span class="t-subhead secondary">{{ toAcknowledge()[0].title }}</span>
+      </span>
+      <app-icon class="chev" name="chevronRight" />
+    </a>
+  }
+
+  @if (tasks().length) {
+    <section class="section">
+      <div class="section-header"><h2>{{ 'home.waiting' | t }}</h2></div>
+      <div class="list">
+        @for (t of tasks(); track t.link) {
+          <a class="list-row" [routerLink]="t.link.split('?')[0]" [queryParams]="t.link.includes('tab=desk') ? { tab: 'desk' } : {}" style="--sep-inset: 58px">
+            <span class="tile" [class]="t.tile"><app-icon [name]="t.icon" /></span>
+            <span class="grow"><span class="title">{{ t.title }}</span><span class="sub">{{ t.detail }}</span></span>
+            <app-icon class="chev" name="chevronRight" />
+          </a>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="columns">
+    <section class="section diary-card">
+      <div class="section-header">
+        <h2>{{ 'nav.diary' | t }}</h2>
+        <a routerLink="/finance" class="t-subhead">{{ 'common.seeAll' | t }}</a>
+      </div>
+      <a class="card diary" routerLink="/finance">
+        @if (finance(); as f) {
+          <app-ring [pct]="f.progressPct" [size]="132" [stroke]="11" [label]="'diary.ringLabel' | t: { pct: f.progressPct }">
+            <div>
+              <div class="pct num">{{ f.progressPct }}%</div>
+              <div class="t-caption secondary">{{ 'diary.paid' | t }}</div>
+            </div>
+          </app-ring>
+          <dl class="figures">
+            <div><dt>{{ 'diary.owed' | t }}</dt><dd class="num">{{ i18n.money(f.totalApproved, f.currency) }}</dd></div>
+            <div><dt>{{ 'diary.paidToDate' | t }}</dt><dd class="num">{{ i18n.money(f.totalPaid, f.currency) }}</dd></div>
+            <div class="outstanding"><dt>{{ 'diary.outstanding' | t }}</dt><dd class="num">{{ i18n.money(f.outstanding, f.currency) }}</dd></div>
+          </dl>
+        } @else {
+          <div class="skeleton" style="width: 132px; height: 132px; border-radius: 50%"></div>
+          <div class="grow stack"><div class="skeleton" style="width: 70%"></div><div class="skeleton" style="width: 50%"></div></div>
+        }
+      </a>
+      @if (finance(); as f) {
+        <p class="group-foot">{{ 'diary.asAt' | t: { date: i18n.dateTime(f.asAt) } }}</p>
+      }
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>{{ 'nav.announcements' | t }}</h2>
+        <a routerLink="/announcements" class="t-subhead">{{ 'common.seeAll' | t }}</a>
+      </div>
+      <div class="list">
+        @for (f of latest(); track f.publicId) {
+          <a class="list-row notice" [routerLink]="['/announcements', f.publicId]" style="--sep-inset: 34px">
+            <span class="dot" [style.visibility]="f.readAt ? 'hidden' : 'visible'"></span>
+            <span class="grow">
+              <span class="title">{{ f.title }}</span>
+              <span class="sub">{{ ('category.' + f.category) | t }}, {{ i18n.relative(f.publishedAt) }}</span>
+            </span>
+            @if (f.requiresAck && !f.acknowledgedAt) {
+              <span class="badge orange">{{ 'feed.ackNeeded' | t }}</span>
+            }
+          </a>
+        } @empty {
+          @if (feed() === null) {
+            @for (i of [1, 2, 3]; track i) {
+              <div class="list-row"><span class="skeleton grow"></span></div>
+            }
+          } @else {
+            <div class="list-empty">{{ 'feed.empty' | t }}</div>
+          }
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>{{ 'nav.notifications' | t }}</h2>
+      <a routerLink="/notifications" class="t-subhead">{{ 'common.seeAll' | t }}</a>
+    </div>
+    <div class="list">
+      @for (n of inbox(); track n.publicId) {
+        <a class="list-row" [routerLink]="deepLink(n)" style="--sep-inset: 34px">
+          <span class="dot" [style.visibility]="n.readAt ? 'hidden' : 'visible'"></span>
+          <span class="grow"><span class="title">{{ n.title }}</span></span>
+          <span class="t-footnote secondary">{{ i18n.relative(n.createdAt) }}</span>
+        </a>
+      } @empty {
+        <div class="list-empty">{{ (inbox() === null ? 'common.loading' : 'inbox.empty') | t }}</div>
+      }
+    </div>
+  </section>
+</div>

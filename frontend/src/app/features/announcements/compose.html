@@ -1,0 +1,148 @@
+<div class="page page-narrow">
+  <app-page-header
+    [title]="(amending() ? 'compose.amendTitle' : existing() ? 'compose.editTitle' : 'compose.newTitle') | t"
+    [back]="existing() ? '/announcements/manage/' + existing()!.publicId : '/announcements/manage'"
+    [backLabel]="'common.back' | t" />
+
+  @if (amending()) {
+    <div class="banner orange" style="margin-bottom: 20px"><app-icon name="info" /><span>{{ 'compose.amendHelp' | t }}</span></div>
+  }
+
+  <form (ngSubmit)="save(true)" novalidate>
+    <div class="group-label">{{ 'compose.kind' | t }}</div>
+    <div class="kinds" role="radiogroup" [attr.aria-label]="'compose.kind' | t">
+      @for (c of categories(); track c) {
+        <button type="button" role="radio" class="kind" [class.selected]="category() === c" [class.danger]="c === 'EMERGENCY_ALERT'"
+          [attr.aria-checked]="category() === c" (click)="category.set(c)" [disabled]="amending()">
+          <span class="t-subhead">{{ ('category.' + c) | t }}</span>
+          <span class="t-caption secondary">{{ ('compose.kindHelp.' + c) | t }}</span>
+        </button>
+      }
+    </div>
+    @if (needsApproval()) {
+      <p class="group-foot"><app-icon name="info" style="--icon-size: 13px; display: inline-flex; vertical-align: -2px" /> {{ 'compose.needsApproval' | t }}</p>
+    }
+
+    <div class="section">
+      <app-segmented [segments]="langs()" [(value)]="lang" [label]="'compose.language' | t" />
+      <p class="group-foot" style="margin: 8px 4px 14px">{{ 'compose.languageHelp' | t }}</p>
+      @if (lang() === 'en') {
+        <label class="field">
+          <span class="label">{{ 'compose.title' | t }}</span>
+          <input class="input title-input" name="titleEn" [ngModel]="titleEn()" (ngModelChange)="titleEn.set($event)" maxlength="200" />
+        </label>
+        <div class="field" style="margin-top: 14px">
+          <span class="label">{{ 'compose.body' | t }}</span>
+          <app-rich-text [(value)]="bodyEn" [label]="'compose.body' | t" [placeholder]="'compose.bodyPlaceholder' | t" />
+        </div>
+      } @else {
+        <label class="field">
+          <span class="label">{{ 'compose.title' | t }}</span>
+          <input class="input title-input" name="titleSw" [ngModel]="titleSw()" (ngModelChange)="titleSw.set($event)" maxlength="200" lang="sw" />
+        </label>
+        <div class="field" style="margin-top: 14px">
+          <span class="label">{{ 'compose.body' | t }}</span>
+          <app-rich-text [(value)]="bodySw" [label]="'compose.body' | t" [placeholder]="'compose.bodyPlaceholder' | t" />
+        </div>
+      }
+    </div>
+
+    <div class="section">
+      <div class="group-label">{{ 'compose.audience' | t }}</div>
+      <div class="list">
+        @for (r of audiences(); track $index; let i = $index) {
+          <div class="list-row rule">
+            <select class="select" [ngModel]="r.type" (ngModelChange)="setRule(i, { type: $event })" [name]="'type' + i" [attr.aria-label]="'compose.audienceType' | t" [disabled]="amending()">
+              @for (t of ['ALL', 'ORG_UNIT_TREE', 'ORG_UNIT', 'ROLE', 'STAFF_CATEGORY', 'DUTY_STATION']; track t) {
+                <option [value]="t">{{ ('audience.' + t) | t }}</option>
+              }
+            </select>
+            @if (r.type === 'ORG_UNIT' || r.type === 'ORG_UNIT_TREE') {
+              <select class="select" [ngModel]="r.value" (ngModelChange)="setRule(i, { value: $event })" [name]="'value' + i" [attr.aria-label]="'compose.unit' | t" [disabled]="amending()">
+                <option value="" disabled>{{ 'compose.chooseUnit' | t }}</option>
+                @for (u of units(); track u.code) {
+                  <option [value]="u.code">{{ u.label }}</option>
+                }
+              </select>
+            } @else if (r.type === 'ROLE') {
+              <select class="select" [ngModel]="r.value" (ngModelChange)="setRule(i, { value: $event })" [name]="'value' + i" [disabled]="amending()">
+                <option value="" disabled>{{ 'compose.chooseRole' | t }}</option>
+                @for (role of ['LINE_MANAGER', 'DIRECTOR', 'EXECUTIVE', 'FIN_OFFICER', 'HR_OFFICER', 'COMMS_PUBLISHER']; track role) {
+                  <option [value]="role">{{ ('role.' + role) | t }}</option>
+                }
+              </select>
+            } @else if (r.type !== 'ALL') {
+              <input class="input" [ngModel]="r.value" (ngModelChange)="setRule(i, { value: $event })" [name]="'value' + i" [placeholder]="('compose.valueHint.' + r.type) | t" [disabled]="amending()" />
+            }
+            @if (!amending() && (audiences().length > 1 || r.type !== 'ALL')) {
+              <button class="icon-btn remove" type="button" (click)="removeRule(i)" [attr.aria-label]="'common.remove' | t"><app-icon name="x" /></button>
+            }
+          </div>
+        }
+        @if (!amending()) {
+          <button class="list-row add" type="button" (click)="addRule()"><app-icon name="plus" /> {{ 'compose.addAudience' | t }}</button>
+        }
+      </div>
+      <p class="group-foot reach" aria-live="polite">
+        @if (reach() !== null) {
+          <app-icon name="users" /> {{ 'compose.reach' | t: { n: i18n.number(reach()) } }}
+        }
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="group-label">{{ 'compose.options' | t }}</div>
+      <div class="list">
+        <label class="list-row">
+          <span class="grow"><span class="title">{{ 'compose.requiresAck' | t }}</span><span class="sub">{{ 'compose.requiresAckHelp' | t }}</span></span>
+          <input type="checkbox" class="switch" name="ack" [(ngModel)]="requiresAck" [disabled]="category() === 'EMERGENCY_ALERT' || amending()" />
+        </label>
+        <label class="list-row">
+          <span class="grow">{{ 'compose.priority' | t }}</span>
+          <select class="select inline" name="priority" [(ngModel)]="priority" [disabled]="category() === 'EMERGENCY_ALERT'">
+            @for (p of [1, 2, 3]; track p) {
+              <option [ngValue]="p">{{ ('priority.' + p) | t }}</option>
+            }
+          </select>
+        </label>
+        <label class="list-row">
+          <span class="grow">{{ 'compose.classification' | t }}</span>
+          <select class="select inline" name="cls" [(ngModel)]="classification">
+            @for (c of ['PUBLIC', 'INTERNAL', 'RESTRICTED']; track c) {
+              <option [value]="c">{{ ('class.' + c) | t }}</option>
+            }
+          </select>
+        </label>
+        <label class="list-row">
+          <span class="grow">{{ 'compose.effective' | t }}</span>
+          <input class="input inline" type="datetime-local" name="eff" [(ngModel)]="effectiveAt" [disabled]="amending()" />
+        </label>
+        <label class="list-row">
+          <span class="grow">{{ 'compose.expires' | t }}</span>
+          <input class="input inline" type="datetime-local" name="exp" [(ngModel)]="expiresAt" />
+        </label>
+      </div>
+      <p class="group-foot">{{ 'compose.effectiveHelp' | t }}</p>
+    </div>
+
+    @if (amending()) {
+      <div class="section">
+        <label class="field">
+          <span class="label">{{ 'compose.changeNote' | t }}</span>
+          <input class="input" name="note" [(ngModel)]="changeNote" maxlength="500" [placeholder]="'compose.changeNoteHint' | t" />
+        </label>
+      </div>
+    }
+
+    <div class="actions">
+      @if (amending()) {
+        <button class="btn btn-filled btn-large" type="button" (click)="save(false)" [disabled]="busy() || !valid() || !changeNote.trim()">{{ 'compose.publishAmendment' | t }}</button>
+      } @else {
+        <button class="btn btn-large" type="button" (click)="save(false)" [disabled]="busy() || !valid()">{{ 'compose.saveDraft' | t }}</button>
+        <button class="btn btn-filled btn-large" type="submit" [disabled]="busy() || !valid()">
+          {{ (needsApproval() ? 'compose.sendForApproval' : category() === 'EMERGENCY_ALERT' ? 'compose.sendAlert' : 'compose.publish') | t }}
+        </button>
+      }
+    </div>
+  </form>
+</div>

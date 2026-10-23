@@ -1,0 +1,97 @@
+<div class="page">
+  <app-page-header [title]="'nav.diary' | t" [subtitle]="'diary.subtitle' | t" />
+
+  <section class="hero card card-raised">
+    @if (primary(); as f) {
+      <app-ring [pct]="f.progressPct" [size]="196" [stroke]="10" [label]="'diary.ringLabel' | t: { pct: f.progressPct }">
+        <div>
+          <div class="ring-value num">{{ i18n.money(f.outstanding, f.currency) }}</div>
+          <div class="t-footnote secondary">{{ 'diary.outstanding' | t }}</div>
+        </div>
+      </app-ring>
+      <div class="hero-body">
+        <dl class="figures">
+          <div>
+            <dt><span class="key owed"></span>{{ 'diary.owed' | t }}</dt>
+            <dd class="num">{{ i18n.money(f.totalApproved, f.currency) }}</dd>
+          </div>
+          <div>
+            <dt><span class="key paid"></span>{{ 'diary.paidToDate' | t }}</dt>
+            <dd class="num">{{ i18n.money(f.totalPaid, f.currency) }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'diary.claims' | t }}</dt>
+            <dd class="num">{{ f.claimCount }}</dd>
+          </div>
+        </dl>
+        <p class="t-footnote secondary">{{ 'diary.paidShare' | t: { pct: f.progressPct } }} {{ 'diary.asAt' | t: { date: i18n.dateTime(f.asAt) } }}</p>
+        @for (o of others(); track o.currency) {
+          <p class="t-footnote secondary">{{ 'diary.otherCurrency' | t: { owed: i18n.money(o.totalApproved, o.currency), out: i18n.money(o.outstanding, o.currency) } }}</p>
+        }
+        @if (f.openQueries) {
+          <a class="btn btn-tinted" href="#queries"><app-icon name="question" /> {{ 'diary.openQueries' | t: { n: f.openQueries } }}</a>
+        }
+      </div>
+    } @else if (summaries() === null) {
+      <div class="skeleton" style="width: 196px; height: 196px; border-radius: 50%"></div>
+      <div class="hero-body stack"><div class="skeleton" style="width: 60%"></div><div class="skeleton" style="width: 40%"></div></div>
+    }
+  </section>
+  <p class="group-foot privacy"><app-icon name="lock" /> {{ 'diary.privacy' | t }}</p>
+
+  <section class="section">
+    <div class="toolbar">
+      <app-segmented [segments]="segments()" [(value)]="status" [label]="'diary.filterLabel' | t" />
+      <div class="search">
+        <app-icon name="search" />
+        <input class="input" type="search" [(ngModel)]="q" (ngModelChange)="onSearch($event)" [placeholder]="'diary.search' | t" [attr.aria-label]="'diary.search' | t" />
+      </div>
+    </div>
+
+    <div class="list claims">
+      @for (c of claims(); track c.publicId) {
+        <a class="list-row claim" [routerLink]="['/finance/claims', c.publicId]" style="--sep-inset: 62px">
+          <span class="tile" [class]="icons[c.claimTypeCode]?.tile ?? 'gray'"><app-icon [name]="icons[c.claimTypeCode]?.icon ?? 'receipt'" /></span>
+          <span class="grow">
+            <span class="title">{{ c.description }}</span>
+            <span class="sub">{{ claimType(c) }}, {{ c.sourceRef }}, {{ i18n.date(c.approvalDate) }}</span>
+            <span class="progress" aria-hidden="true"><span [style.width.%]="paidPct(c)" [class.full]="paidPct(c) >= 100"></span></span>
+          </span>
+          <span class="amounts">
+            <span class="num amount" [class.settled]="c.outstandingAmount <= 0">{{ i18n.money(c.outstandingAmount > 0 ? c.outstandingAmount : c.approvedAmount, c.currency) }}</span>
+            <app-status [value]="c.paymentStatus" />
+          </span>
+          <app-icon class="chev" name="chevronRight" />
+        </a>
+      } @empty {
+        @if (claims() === null) {
+          @for (i of [1, 2, 3]; track i) {
+            <div class="list-row"><span class="skeleton" style="width: 30px; height: 30px"></span><span class="skeleton grow"></span></div>
+          }
+        } @else {
+          <app-empty icon="wallet" [title]="'diary.empty' | t" [text]="'diary.emptyText' | t" />
+        }
+      }
+    </div>
+    <p class="group-foot">{{ 'diary.amountHelp' | t }}</p>
+  </section>
+
+  <section class="section" id="queries">
+    <div class="section-header"><h2>{{ 'diary.myQueries' | t }}</h2></div>
+    <div class="list">
+      @for (q of queries(); track q.publicId) {
+        <a class="list-row" [routerLink]="['/finance/queries', q.publicId]" style="--sep-inset: 58px">
+          <span class="tile green"><app-icon name="question" /></span>
+          <span class="grow">
+            <span class="title">{{ q.description }}</span>
+            <span class="sub">{{ q.claimRef }}, {{ i18n.relative(q.updatedAt) }}</span>
+          </span>
+          <app-status [value]="q.status" />
+          <app-icon class="chev" name="chevronRight" />
+        </a>
+      } @empty {
+        <div class="list-empty">{{ 'diary.noQueries' | t }}</div>
+      }
+    </div>
+  </section>
+</div>
