@@ -1,0 +1,130 @@
+# ICCP backend configuration. Secrets come from environment variables (see .env.example);
+# the defaults below are for a developer workstation only.
+spring:
+  application:
+    name: iccp
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${ICCP_DB_URL:jdbc:postgresql://localhost:5432/iccp}
+    username: iccp_app
+    password: ${ICCP_APP_PASSWORD:iccp_app_dev}
+    hikari:
+      maximum-pool-size: ${ICCP_DB_POOL:20}
+      auto-commit: false
+  flyway:
+    enabled: true
+    user: iccp_owner
+    password: ${ICCP_OWNER_PASSWORD:iccp_owner_dev}
+    locations: classpath:db/migration
+    # Migrations run as the owner; the application connects as iccp_app (no DDL, RLS applies).
+    baseline-on-migrate: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+    encoding: UTF-8
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  mail:
+    host: ${ICCP_SMTP_HOST:localhost}
+    port: ${ICCP_SMTP_PORT:1025}
+
+server:
+  port: ${ICCP_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    # Mail and SMS are delivered asynchronously with retries; an unavailable relay must not take the API out of the load balancer.
+    mail:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /api/v1/openapi
+  swagger-ui:
+    path: /api/v1/docs
+
+iccp:
+  auth:
+    mode: ${ICCP_AUTH_MODE:oidc}
+    issuer: ${ICCP_OIDC_ISSUER:http://localhost:8180/realms/tirdo}
+    client-id: iccp-web
+    dev-secret: ${ICCP_DEV_SECRET:}
+    allowed-origins: ${ICCP_ALLOWED_ORIGINS:http://localhost:4200}
+  app:
+    public-url: ${ICCP_PUBLIC_URL:http://localhost:4200}
+    version: 0.1.0-r1
+  files:
+    store: ${ICCP_FILE_STORE:local}
+    local-dir: ${ICCP_FILE_DIR:./var/files}
+    minio-endpoint: ${ICCP_MINIO_ENDPOINT:}
+    minio-access-key: ${ICCP_MINIO_ACCESS_KEY:}
+    minio-secret-key: ${ICCP_MINIO_SECRET_KEY:}
+    minio-bucket: iccp
+  notifications:
+    email-from: "ICCP <no-reply@tirdo.go.tz>"
+    email-enabled: ${ICCP_EMAIL_ENABLED:false}
+    sms-provider: log
+    time-zone: Africa/Dar_es_Salaam
+  demo:
+    enabled: false
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+  level:
+    tz.go.tirdo.iccp: INFO
+
+---
+# Local development: HS256 sign-in from /api/v1/dev/login, no Keycloak needed.
+spring:
+  config:
+    activate:
+      on-profile: dev
+iccp:
+  auth:
+    mode: dev
+    dev-secret: ${ICCP_DEV_SECRET:change-me-dev-secret-at-least-32-bytes-long}
+logging:
+  level:
+    tz.go.tirdo.iccp: DEBUG
+    tz.go.tirdo.iccp.platform.db: INFO
+
+---
+# Demo: loads fictional staff, finance data and notices on first start (use with dev).
+spring:
+  config:
+    activate:
+      on-profile: demo
+iccp:
+  demo:
+    enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+iccp:
+  files:
+    store: minio

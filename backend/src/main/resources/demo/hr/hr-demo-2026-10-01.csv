@@ -1,0 +1,53 @@
+U,DG,Office of the Director General,Ofisi ya Mkurugenzi Mkuu,OFFICE,,2020-07-01,
+U,DRD,Directorate of Research and Development,Kurugenzi ya Utafiti na Maendeleo,DIRECTORATE,DG,2020-07-01,
+U,LAB-CHEM,Chemical and Environmental Laboratory,Maabara ya Kemikali na Mazingira,LABORATORY,DRD,2020-07-01,
+U,LAB-MECH,Mechanical and Materials Laboratory,Maabara ya Mitambo na Malighafi,LABORATORY,DRD,2020-07-01,
+U,DIS,Directorate of Industrial Services,Kurugenzi ya Huduma za Viwanda,DIRECTORATE,DG,2020-07-01,
+U,SEC-TT,Technology Transfer Section,Sehemu ya Uhawilishaji wa Teknolojia,SECTION,DIS,2020-07-01,
+U,DCS,Directorate of Corporate Services,Kurugenzi ya Huduma za Shirika,DIRECTORATE,DG,2020-07-01,
+U,ICTT,ICTT Department,Idara ya TEHAMA,DEPARTMENT,DCS,2020-07-01,
+U,FIN,Finance and Accounts Unit,Kitengo cha Fedha na Uhasibu,UNIT,DCS,2020-07-01,
+U,HRA,Human Resources Unit,Kitengo cha Rasilimali Watu,UNIT,DCS,2020-07-01,
+U,CPR,Communication and Public Relations Unit,Kitengo cha Mawasiliano na Uhusiano,UNIT,DCS,2020-07-01,
+O,P-DG-HEAD,Director General,Mkurugenzi Mkuu,DG,true
+O,P-DG-OFF,Personal Assistant,Msaidizi Binafsi,DG,false
+O,P-DRD-HEAD,Director of Research and Development,Mkurugenzi wa Utafiti na Maendeleo,DRD,true
+O,P-LAB-CHEM-HEAD,"Head, Chemical Laboratory",Mkuu wa Maabara ya Kemikali,LAB-CHEM,true
+O,P-LAB-CHEM-OFF,Research Scientist,Mwanasayansi Mtafiti,LAB-CHEM,false
+O,P-LAB-MECH-HEAD,"Head, Mechanical Laboratory",Mkuu wa Maabara ya Mitambo,LAB-MECH,true
+O,P-LAB-MECH-OFF,Research Engineer,Mhandisi Mtafiti,LAB-MECH,false
+O,P-DIS-HEAD,Director of Industrial Services,Mkurugenzi wa Huduma za Viwanda,DIS,true
+O,P-SEC-TT-HEAD,"Head, Technology Transfer",Mkuu wa Uhawilishaji wa Teknolojia,SEC-TT,true
+O,P-SEC-TT-OFF,Industrial Liaison Officer,Afisa Uhusiano wa Viwanda,SEC-TT,false
+O,P-DCS-HEAD,Director of Corporate Services,Mkurugenzi wa Huduma za Shirika,DCS,true
+O,P-ICTT-HEAD,"Head, ICTT Department",Mkuu wa Idara ya TEHAMA,ICTT,true
+O,P-ICTT-OFF,ICT Officer,Afisa TEHAMA,ICTT,false
+O,P-FIN-HEAD,Chief Accountant,Mhasibu Mkuu,FIN,true
+O,P-FIN-OFF,Accountant,Mhasibu,FIN,false
+O,P-HRA-HEAD,"Head, Human Resources",Mkuu wa Rasilimali Watu,HRA,true
+O,P-HRA-OFF,Human Resources Officer,Afisa Rasilimali Watu,HRA,false
+O,P-CPR-HEAD,"Head, Communication",Mkuu wa Mawasiliano,CPR,true
+O,P-CPR-OFF,Communication Officer,Afisa Mawasiliano,CPR,false
+S,TR1001,Amani,J.,Kilonzo,Dr.,P-DG-HEAD,DG,,ACTIVE,Administrative,Dar es Salaam HQ,amani.kilonzo@tirdo.example,+255 22 266 1001,+255700100101
+S,TR1002,Rehema,,Mwakasege,,P-DG-OFF,DG,TR1001,ACTIVE,Administrative,Dar es Salaam HQ,rehema.mwakasege@tirdo.example,+255 22 266 1002,+255700100102
+S,TR1010,Baraka,S.,Nyirenda,Prof.,P-DRD-HEAD,DRD,TR1001,ACTIVE,Research,Dar es Salaam HQ,baraka.nyirenda@tirdo.example,+255 22 266 1010,+255700100110
+S,TR1011,Zawadi,,Mrema,Dr.,P-LAB-CHEM-HEAD,LAB-CHEM,TR1010,ACTIVE,Research,Dar es Salaam HQ,zawadi.mrema@tirdo.example,+255 22 266 1011,+255700100111
+S,TR1007,Neema,A.,Mushi,,P-LAB-CHEM-OFF,LAB-CHEM,TR1011,ACTIVE,Research,Dar es Salaam HQ,neema.mushi@tirdo.example,+255 22 266 1007,+255700100107
+S,TR1012,Juma,,Lyimo,,P-LAB-CHEM-OFF,LAB-CHEM,TR1011,ACTIVE,Technical,Dar es Salaam HQ,juma.lyimo@tirdo.example,+255 22 266 1012,+255700100112
+S,TR1013,Faraji,M.,Komba,Eng.,P-LAB-MECH-HEAD,LAB-MECH,TR1010,ACTIVE,Research,Dar es Salaam HQ,faraji.komba@tirdo.example,+255 22 266 1013,+255700100113
+S,TR1014,Halima,,Ngowi,Eng.,P-LAB-MECH-OFF,LAB-MECH,TR1013,ACTIVE,Research,Dar es Salaam HQ,halima.ngowi@tirdo.example,+255 22 266 1014,+255700100114
+S,TR1015,Daudi,,Massawe,,P-LAB-MECH-OFF,LAB-MECH,TR1013,ACTIVE,Technical,Arusha Field Office,daudi.massawe@tirdo.example,+255 22 266 1015,+255700100115
+S,TR1020,Upendo,K.,Shayo,Dr.,P-DIS-HEAD,DIS,TR1001,ACTIVE,Research,Dar es Salaam HQ,upendo.shayo@tirdo.example,+255 22 266 1020,+255700100120
+S,TR1021,Imani,,Temba,,P-SEC-TT-HEAD,SEC-TT,TR1020,ACTIVE,Technical,Dar es Salaam HQ,imani.temba@tirdo.example,+255 22 266 1021,+255700100121
+S,TR1022,Saidi,,Mbwambo,,P-SEC-TT-OFF,SEC-TT,TR1021,ACTIVE,Technical,Mwanza Field Office,saidi.mbwambo@tirdo.example,+255 22 266 1022,+255700100122
+S,TR1030,Grace,L.,Massawe,,P-DCS-HEAD,DCS,TR1001,ACTIVE,Administrative,Dar es Salaam HQ,grace.massawe@tirdo.example,+255 22 266 1030,+255700100130
+S,TR1031,Elia,,Mollel,Eng.,P-ICTT-HEAD,ICTT,TR1030,ACTIVE,Technical,Dar es Salaam HQ,elia.mollel@tirdo.example,+255 22 266 1031,+255700100131
+S,TR1032,Tumaini,,Kweka,,P-ICTT-OFF,ICTT,TR1031,ACTIVE,Technical,Dar es Salaam HQ,tumaini.kweka@tirdo.example,+255 22 266 1032,+255700100132
+S,TR1040,Mwanaisha,,Said,CPA,P-FIN-HEAD,FIN,TR1030,ACTIVE,Administrative,Dar es Salaam HQ,mwanaisha.said@tirdo.example,+255 22 266 1040,+255700100140
+S,TR1041,Petro,,Urio,,P-FIN-OFF,FIN,TR1040,ACTIVE,Administrative,Dar es Salaam HQ,petro.urio@tirdo.example,+255 22 266 1041,+255700100141
+S,TR1042,Lucy,,Minja,,P-FIN-OFF,FIN,TR1040,ACTIVE,Administrative,Dar es Salaam HQ,lucy.minja@tirdo.example,+255 22 266 1042,+255700100142
+S,TR1050,Esther,,Kimaro,,P-HRA-HEAD,HRA,TR1030,ACTIVE,Administrative,Dar es Salaam HQ,esther.kimaro@tirdo.example,+255 22 266 1050,+255700100150
+S,TR1051,Hassani,,Mfinanga,,P-HRA-OFF,HRA,TR1050,ACTIVE,Administrative,Dar es Salaam HQ,hassani.mfinanga@tirdo.example,+255 22 266 1051,+255700100151
+S,TR1060,Agnes,,Swai,,P-CPR-HEAD,CPR,TR1030,ACTIVE,Administrative,Dar es Salaam HQ,agnes.swai@tirdo.example,+255 22 266 1060,+255700100160
+S,TR1061,Yusufu,,Chande,,P-CPR-OFF,CPR,TR1060,ACTIVE,Administrative,Dar es Salaam HQ,yusufu.chande@tirdo.example,+255 22 266 1061,+255700100161
+T,11,19,22

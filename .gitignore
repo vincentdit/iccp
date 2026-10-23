@@ -1,0 +1,13 @@
+# Build output
+backend/target/
+frontend/dist/
+frontend/.angular/
+node_modules/
+# Local configuration and runtime files
+infra/.env
+backend/var/
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store

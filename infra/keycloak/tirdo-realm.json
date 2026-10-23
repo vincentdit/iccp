@@ -1,0 +1,215 @@
+{
+  "realm": "tirdo",
+  "enabled": true,
+  "displayName": "TIRDO",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "en",
+    "sw"
+  ],
+  "defaultLocale": "en",
+  "sslRequired": "external",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "passwordPolicy": "length(12) and notUsername and passwordHistory(5)",
+  "clients": [
+    {
+      "clientId": "iccp-web",
+      "name": "ICCP",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "employee_no",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "employee_no",
+            "claim.name": "employee_no",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "tr1007",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Neema",
+      "lastName": "Mushi",
+      "email": "neema.mushi@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1007"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1041",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Petro",
+      "lastName": "Urio",
+      "email": "petro.urio@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1041"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1040",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Mwanaisha",
+      "lastName": "Said",
+      "email": "mwanaisha.said@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1040"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1061",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Yusufu",
+      "lastName": "Chande",
+      "email": "yusufu.chande@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1061"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1030",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Grace",
+      "lastName": "Massawe",
+      "email": "grace.massawe@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1030"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1031",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Elia",
+      "lastName": "Mollel",
+      "email": "elia.mollel@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1031"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1050",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Esther",
+      "lastName": "Kimaro",
+      "email": "esther.kimaro@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1050"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tr1001",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Amani",
+      "lastName": "Kilonzo",
+      "email": "amani.kilonzo@tirdo.example",
+      "attributes": {
+        "employee_no": [
+          "TR1001"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Iccp-Demo-2026",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
