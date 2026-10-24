@@ -1,6 +1,7 @@
 # API smoke test for Windows PowerShell 5.1 or PowerShell 7. Run against a freshly seeded backend (profiles dev,demo).
-# Usage: powershell -ExecutionPolicy Bypass -File scripts\smoke.ps1 [-Base http://localhost:8080]
-param([string]$Base = "http://localhost:8080")
+# Usage: powershell -ExecutionPolicy Bypass -File scripts\smoke.ps1 [-Base http://localhost:8090]
+# Default is the Docker web container, which forwards /api to the backend; use -Base http://localhost:8080 for a backend run with Maven.
+param([string]$Base = "http://localhost:8090")
 $ErrorActionPreference = "Stop"
 $script:pass = 0; $script:fail = 0
 

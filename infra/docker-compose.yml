@@ -1,6 +1,9 @@
-# Supporting services for local development and demos.
-# Start:  docker compose --env-file .env up -d        (copy .env.example to .env first)
-# The backend and the Angular app run on the host (see README) so they reload as you edit.
+# ICCP on Docker.
+#   Everything (database, backend, web app, mail viewer):
+#     docker compose -f infra\docker-compose.yml --env-file infra\.env up -d --build
+#   Then open http://localhost:8090  (Mailpit: http://localhost:8025)
+#   Add Keycloak and MinIO with:  --profile sso
+# Host ports are chosen to avoid clashing with a PostgreSQL (5432) or another app (8080) already on the machine.
 name: iccp
 
 services:
@@ -15,16 +18,46 @@ services:
       ICCP_REPORT_PASSWORD: ${ICCP_REPORT_PASSWORD}
       ICCP_AUDITOR_PASSWORD: ${ICCP_AUDITOR_PASSWORD}
       TZ: Africa/Dar_es_Salaam
-    ports: ["5432:5432"]
+    ports: ["55432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/01-iccp-roles.sh:/docker-entrypoint-initdb.d/01-iccp-roles.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d iccp"]
       interval: 5s
-      retries: 20
+      retries: 30
+
+  backend:
+    build: ../backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${ICCP_PROFILES:-dev,demo}
+      ICCP_DB_URL: jdbc:postgresql://postgres:5432/iccp
+      ICCP_APP_PASSWORD: ${ICCP_APP_PASSWORD}
+      ICCP_OWNER_PASSWORD: ${ICCP_OWNER_PASSWORD}
+      ICCP_PUBLIC_URL: http://localhost:8090
+      ICCP_ALLOWED_ORIGINS: http://localhost:8090
+      ICCP_DEV_SECRET: ${ICCP_DEV_SECRET}
+      ICCP_FILE_DIR: /app/var/files
+      ICCP_SMTP_HOST: mailpit
+      ICCP_SMTP_PORT: "1025"
+      ICCP_EMAIL_ENABLED: "true"
+    volumes:
+      - files:/app/var/files
+
+  web:
+    build: ../frontend
+    depends_on: [backend]
+    ports: ["8090:80"]
+
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports: ["8025:8025"]
 
   keycloak:
+    profiles: ["sso"]
     image: quay.io/keycloak/keycloak:26.0.7
     command: ["start-dev", "--import-realm"]
     environment:
@@ -37,6 +70,7 @@ services:
       - ./keycloak/tirdo-realm.json:/opt/keycloak/data/import/tirdo-realm.json:ro
 
   minio:
+    profiles: ["sso"]
     image: minio/minio:RELEASE.2024-10-13T13-34-11Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
@@ -46,10 +80,7 @@ services:
     volumes:
       - miniodata:/data
 
-  mailpit:
-    image: axllent/mailpit:v1.20
-    ports: ["1025:1025", "8025:8025"]
-
 volumes:
   pgdata:
+  files:
   miniodata:

@@ -15,14 +15,31 @@ Release 1 (Foundation): **SEC** identity, roles and audit, **DIR** staff directo
 
 All people and figures in the demo data are invented. Email addresses use the reserved `.example` domain.
 
-## Run it on Windows
+## Run everything in Docker (quickest)
+
+You need Docker Desktop. The first build downloads Maven and npm packages and takes several minutes.
+
+```powershell
+cd C:\dev\iccp; if (!(Test-Path infra\.env)) { Copy-Item infra\.env.example infra\.env }; docker compose -f infra\docker-compose.yml --env-file infra\.env up -d --build
+```
+
+Open http://localhost:8090 when the backend log says `Demo data loaded`:
+
+```powershell
+docker compose -f C:\dev\iccp\infra\docker-compose.yml --env-file C:\dev\iccp\infra\.env logs -f backend
+```
+
+Outgoing email appears in Mailpit at http://localhost:8025. PostgreSQL is on host port 55432 (not 5432, so it
+does not clash with a PostgreSQL already installed on Windows). After pulling new code, run the same `up -d --build` again.
+
+## Run it on Windows for development
 
 You need JDK 21, Maven 3.9, Node.js 22 and Docker Desktop. Open PowerShell in `C:\dev\iccp`.
 
-**1. Start the supporting services** (first time: copy the environment file)
+**1. Start the database and mail viewer in Docker** (first time: copy the environment file)
 
 ```powershell
-Copy-Item infra\.env.example infra\.env; docker compose -f infra\docker-compose.yml --env-file infra\.env up -d
+cd C:\dev\iccp; if (!(Test-Path infra\.env)) { Copy-Item infra\.env.example infra\.env }; docker compose -f infra\docker-compose.yml --env-file infra\.env up -d postgres mailpit
 ```
 
 **2. Start the backend with demo data and development sign-in**
@@ -52,7 +69,8 @@ Open http://localhost:4200 and choose a person. Useful people to try:
 | Eng. Elia Mollel | TR1031 | ICTT: roles and audit trail |
 | Esther Kimaro | TR1050 | HR officer: HR imports and acting appointments |
 
-**4. Check the API end to end** (on a freshly seeded database)
+**4. Check the API end to end** (on a freshly seeded database; the default address is the Docker web container,
+add `-Base http://localhost:8080` for a backend started with Maven)
 
 ```powershell
 cd C:\dev\iccp; powershell -ExecutionPolicy Bypass -File scripts\smoke.ps1
@@ -74,18 +92,18 @@ The web app is up but the backend is not. Check, in this order:
    docker compose -f C:\dev\iccp\infra\docker-compose.yml --env-file C:\dev\iccp\infra\.env ps
    ```
 
-2. Nothing else is using port 5432 or 8080 — a PostgreSQL installed on Windows takes 5432 and the backend would
-   then connect to the wrong database:
+2. Nothing else is using port 55432 (the Docker database) or 8080 (the backend run with Maven):
 
    ```powershell
-   Get-NetTCPConnection -LocalPort 5432,8080 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess).ProcessName}}
+   Get-NetTCPConnection -LocalPort 55432,8080 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess).ProcessName}}
    ```
 
-3. The backend window ends with `Demo data loaded` and `Started IccpApplication`. If it stopped with an error,
+3. The backend log (the Maven window, or `docker compose ... logs backend`) ends with `Demo data loaded`. If it stopped with an error,
    that message says what is missing.
 
 ### Signing in through Keycloak instead
 
+Start Keycloak with `docker compose -f infra\docker-compose.yml --env-file infra\.env --profile sso up -d keycloak minio`.
 The Compose file imports realm `tirdo` with client `iccp-web` (public, PKCE) and the people above as users
 (username = employee number in lower case, password `Iccp-Demo-2026`). Run the backend without the `dev` profile:
 
