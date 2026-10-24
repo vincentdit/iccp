@@ -1,3 +1,5 @@
-node_modules/
-dist/
-.angular/
+# Only the built app and the nginx configuration go into the image.
+*
+!dist/frontend/browser
+!dist/frontend/browser/**
+!nginx.conf

@@ -11,8 +11,8 @@ Verified in the build environment on 23 October 2026:
 
 Known gaps to close before go-live:
 
-1. **Maven build not yet run outside this environment.** Dependencies were compiled against Spring Boot 3.3 jars;
-   `pom.xml` targets 3.5.12. Run `mvn verify` and fix any API differences.
+1. **Spring Boot 3.3.4.** The code was compiled and tested against 3.3.4 (the version already in the TIRDO build
+   machines' Maven repositories). Moving to 3.5.x is a separate, tested upgrade.
 2. **Keycloak user attribute `employee_no`.** Keycloak 26 drops unmanaged attributes unless the user profile allows them;
    sign-in falls back to email linking, which works for the demo users. Enable the attribute in the realm's user profile.
 3. **SMS gateway** is a logging stub; connect the government SMS gateway (Doc 03 §6.5).

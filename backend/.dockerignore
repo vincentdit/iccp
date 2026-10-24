@@ -1,3 +1,3 @@
-target/
-db-model/node_modules/
-var/
+# Only the jar built on the host goes into the image.
+*
+!target/iccp-backend.jar

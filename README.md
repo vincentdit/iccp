@@ -17,10 +17,18 @@ All people and figures in the demo data are invented. Email addresses use the re
 
 ## Run everything in Docker (quickest)
 
-You need Docker Desktop. The first build downloads Maven and npm packages and takes several minutes.
+You need JDK 21, Maven, Node.js 22 and Docker Desktop. The backend jar and the web app are built on your machine,
+using your local Maven repository and `node_modules`, so Docker only downloads small runtime images
+(`eclipse-temurin:21-jre`, `nginx:1.27-alpine`, `postgres:16`, `axllent/mailpit`). The script does all of it:
 
 ```powershell
-cd C:\dev\iccp; if (!(Test-Path infra\.env)) { Copy-Item infra\.env.example infra\.env }; docker compose -f infra\docker-compose.yml --env-file infra\.env up -d --build
+powershell -NoExit -ExecutionPolicy Bypass -File C:\dev\iccp-docker-up.ps1
+```
+
+Or step by step:
+
+```powershell
+cd C:\dev\iccp\backend; mvn -B -DskipTests package; cd ..\frontend; npx ng build; cd ..; if (!(Test-Path infra\.env)) { Copy-Item infra\.env.example infra\.env }; docker compose -f infra\docker-compose.yml --env-file infra\.env up -d --build
 ```
 
 Open http://localhost:8090 when the backend log says `Demo data loaded`:
@@ -30,7 +38,8 @@ docker compose -f C:\dev\iccp\infra\docker-compose.yml --env-file C:\dev\iccp\in
 ```
 
 Outgoing email appears in Mailpit at http://localhost:8025. PostgreSQL is on host port 55432 (not 5432, so it
-does not clash with a PostgreSQL already installed on Windows). After pulling new code, run the same `up -d --build` again.
+does not clash with a PostgreSQL already installed on Windows). After changing code, run the step-by-step command again.
+`backend/Dockerfile.ci` and `frontend/Dockerfile.ci` build everything inside Docker for CI servers.
 
 ## Run it on Windows for development
 
