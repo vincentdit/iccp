@@ -6,7 +6,7 @@ import { Auth } from '../../core/auth.service';
 import { I18n, TPipe } from '../../core/i18n.service';
 import { DevUser, PublicConfig } from '../../core/models';
 import { Session } from '../../core/session.service';
-import { errorText } from '../../core/toast.service';
+import { errorText, serverUnreachable } from '../../core/toast.service';
 import { Avatar } from '../../ui/avatar';
 import { Icon } from '../../ui/icon';
 
@@ -29,18 +29,26 @@ export class SignIn {
   protected people = signal<DevUser[]>([]);
   protected busy = signal<string | null>(null);
   protected error = signal<string | null>(null);
+  protected offline = signal(false);
+  protected retrying = signal(false);
 
   constructor() {
     this.init();
   }
 
-  private async init() {
+  protected async init() {
+    this.retrying.set(true);
+    this.error.set(null);
+    this.offline.set(false);
     try {
       const c = await this.auth.loadConfig();
       this.config.set(c);
       if (c.authMode === 'dev') this.people.set(await firstValueFrom(this.http.get<DevUser[]>('/api/v1/dev/users')));
     } catch (e) {
-      this.error.set(errorText(e));
+      this.offline.set(serverUnreachable(e));
+      this.error.set(serverUnreachable(e) ? null : errorText(e));
+    } finally {
+      this.retrying.set(false);
     }
   }
 
@@ -53,7 +61,8 @@ export class SignIn {
       await this.session.load();
       await this.router.navigateByUrl(this.route.snapshot.queryParamMap.get('returnTo') || '/');
     } catch (e) {
-      this.error.set(errorText(e));
+      this.offline.set(serverUnreachable(e));
+      this.error.set(serverUnreachable(e) ? null : errorText(e));
     } finally {
       this.busy.set(null);
     }

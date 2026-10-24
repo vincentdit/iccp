@@ -13,6 +13,17 @@
     <p class="t-callout secondary">{{ 'signin.lede' | t }}</p>
   </section>
 
+  @if (offline()) {
+    <div class="banner orange offline" role="alert">
+      <app-icon name="warning" />
+      <div class="grow">
+        <div class="t-headline">{{ 'signin.offlineTitle' | t }}</div>
+        <div class="t-subhead">{{ 'signin.offlineText' | t }}</div>
+        <button class="btn btn-tinted" type="button" (click)="init()" [disabled]="retrying()">{{ 'signin.retry' | t }}</button>
+      </div>
+    </div>
+  }
+
   @if (error()) {
     <div class="banner red" role="alert"><app-icon name="alert" /><span>{{ error() }}</span></div>
   }

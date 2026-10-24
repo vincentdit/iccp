@@ -64,6 +64,26 @@ cd C:\dev\iccp; powershell -ExecutionPolicy Bypass -File scripts\smoke.ps1
 docker compose -f infra\docker-compose.yml --env-file infra\.env down -v; docker compose -f infra\docker-compose.yml --env-file infra\.env up -d
 ```
 
+### If the sign-in page says the ICCP server is not responding
+
+The web app is up but the backend is not. Check, in this order:
+
+1. Docker services are running (`postgres` should show `healthy`):
+
+   ```powershell
+   docker compose -f C:\dev\iccp\infra\docker-compose.yml --env-file C:\dev\iccp\infra\.env ps
+   ```
+
+2. Nothing else is using port 5432 or 8080 — a PostgreSQL installed on Windows takes 5432 and the backend would
+   then connect to the wrong database:
+
+   ```powershell
+   Get-NetTCPConnection -LocalPort 5432,8080 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess).ProcessName}}
+   ```
+
+3. The backend window ends with `Demo data loaded` and `Started IccpApplication`. If it stopped with an error,
+   that message says what is missing.
+
 ### Signing in through Keycloak instead
 
 The Compose file imports realm `tirdo` with client `iccp-web` (public, PKCE) and the people above as users

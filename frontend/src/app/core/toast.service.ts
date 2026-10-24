@@ -31,11 +31,22 @@ export class Toasts {
 /** The server already words errors for people (and in their language); fall back to a generic line. */
 export function errorText(e: unknown): string {
   if (e instanceof HttpErrorResponse) {
-    if (e.status === 0) return 'ICCP cannot be reached. Check your connection and try again.';
+    if (serverUnreachable(e)) return 'The ICCP server is not responding. Check that the backend is running, then try again.';
     const body = e.error;
     if (body?.fieldErrors?.length) return body.fieldErrors.map((f: { message: string }) => f.message).join(' ');
     if (body?.message) return body.message;
   }
   if (e instanceof Error) return e.message;
   return 'Something went wrong. Try again.';
+}
+
+/**
+ * True when the request never reached the ICCP backend: no network (status 0), or a gateway or the
+ * development proxy answered instead of the API (5xx without an ICCP error body).
+ */
+export function serverUnreachable(e: unknown): boolean {
+  if (!(e instanceof HttpErrorResponse)) return false;
+  if (e.status === 0) return true;
+  const isApiError = !!e.error && typeof e.error === 'object' && 'code' in e.error;
+  return e.status >= 500 && !isApiError;
 }

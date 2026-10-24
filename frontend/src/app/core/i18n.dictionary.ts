@@ -57,6 +57,12 @@ export const DICTIONARY: Record<string, Entry> = {
     en: 'Development sign-in. All people and figures are fictional. Production uses the TIRDO account sign-in.',
     sw: 'Kuingia kwa majaribio. Watu na takwimu zote ni za kubuni. Mfumo halisi unatumia akaunti ya TIRDO.',
   },
+  'signin.offlineTitle': { en: 'The ICCP server is not responding', sw: 'Seva ya ICCP haijibu' },
+  'signin.offlineText': {
+    en: 'The web app is running but cannot reach the backend. Start the backend (and the database), then try again.',
+    sw: 'Programu ya wavuti inaendesha lakini haifikii seva. Washa seva (na hifadhidata), kisha jaribu tena.',
+  },
+  'signin.retry': { en: 'Try again', sw: 'Jaribu tena' },
   'signin.completing': { en: 'Signing you in…', sw: 'Unaingizwa…' },
   'signin.again': { en: 'Sign in again', sw: 'Ingia tena' },
 
