@@ -4,7 +4,9 @@
 #     docker compose -f infra\docker-compose.yml --env-file infra\.env up -d --build
 #   Then open http://localhost:8090  (Mailpit: http://localhost:8025)
 #   Add Keycloak and MinIO with:  --profile sso
-# Host ports are chosen to avoid clashing with a PostgreSQL (5432) or another app (8080) already on the machine.
+# Host ports avoid a PostgreSQL (5432) or another app (8080) already on the machine, and stay below 49152:
+# Windows reserves blocks of the higher ports for Hyper-V/WSL, so binding e.g. 55432 can fail with
+# "access permissions". PostgreSQL is published on 127.0.0.1 only.
 name: iccp
 
 services:
@@ -19,7 +21,7 @@ services:
       ICCP_REPORT_PASSWORD: ${ICCP_REPORT_PASSWORD}
       ICCP_AUDITOR_PASSWORD: ${ICCP_AUDITOR_PASSWORD}
       TZ: Africa/Dar_es_Salaam
-    ports: ["55432:5432"]
+    ports: ["127.0.0.1:15432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/01-iccp-roles.sh:/docker-entrypoint-initdb.d/01-iccp-roles.sh:ro

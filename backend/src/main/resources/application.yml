@@ -7,7 +7,7 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${ICCP_DB_URL:jdbc:postgresql://localhost:55432/iccp}
+    url: ${ICCP_DB_URL:jdbc:postgresql://localhost:15432/iccp}
     username: iccp_app
     password: ${ICCP_APP_PASSWORD:iccp_app_dev}
     hikari:

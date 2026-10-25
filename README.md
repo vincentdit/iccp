@@ -37,8 +37,8 @@ Open http://localhost:8090 when the backend log says `Demo data loaded`:
 docker compose -f C:\dev\iccp\infra\docker-compose.yml --env-file C:\dev\iccp\infra\.env logs -f backend
 ```
 
-Outgoing email appears in Mailpit at http://localhost:8025. PostgreSQL is on host port 55432 (not 5432, so it
-does not clash with a PostgreSQL already installed on Windows). After changing code, run the step-by-step command again.
+Outgoing email appears in Mailpit at http://localhost:8025. PostgreSQL is on host port 15432, local connections only (not 5432, so it
+does not clash with a PostgreSQL already installed on Windows; not 49152 or above, where Windows reserves ports for Hyper-V). After changing code, run the step-by-step command again.
 `backend/Dockerfile.ci` and `frontend/Dockerfile.ci` build everything inside Docker for CI servers.
 
 ## Run it on Windows for development
@@ -101,10 +101,10 @@ The web app is up but the backend is not. Check, in this order:
    docker compose -f C:\dev\iccp\infra\docker-compose.yml --env-file C:\dev\iccp\infra\.env ps
    ```
 
-2. Nothing else is using port 55432 (the Docker database) or 8080 (the backend run with Maven):
+2. Nothing else is using port 15432 (the Docker database) or 8080 (the backend run with Maven):
 
    ```powershell
-   Get-NetTCPConnection -LocalPort 55432,8080 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess).ProcessName}}
+   Get-NetTCPConnection -LocalPort 15432,8080 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess, @{n='Process';e={(Get-Process -Id $_.OwningProcess).ProcessName}}
    ```
 
 3. The backend log (the Maven window, or `docker compose ... logs backend`) ends with `Demo data loaded`. If it stopped with an error,
