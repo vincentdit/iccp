@@ -2,7 +2,7 @@
 # C:\dev\iccp-docker-up.ps1), so Docker only downloads small runtime images.
 #   Everything (database, backend, web app, mail viewer):
 #     docker compose -f infra\docker-compose.yml --env-file infra\.env up -d --build
-#   Then open http://localhost:8090  (Mailpit: http://localhost:8025)
+#   Then open http://localhost:8090, or the port set as ICCP_WEB_PORT in .env  (Mailpit: http://localhost:8025)
 #   Add Keycloak and MinIO with:  --profile sso
 # Host ports avoid a PostgreSQL (5432) or another app (8080) already on the machine, and stay below 49152:
 # Windows reserves blocks of the higher ports for Hyper-V/WSL, so binding e.g. 55432 can fail with
@@ -40,8 +40,8 @@ services:
       ICCP_DB_URL: jdbc:postgresql://postgres:5432/iccp
       ICCP_APP_PASSWORD: ${ICCP_APP_PASSWORD}
       ICCP_OWNER_PASSWORD: ${ICCP_OWNER_PASSWORD}
-      ICCP_PUBLIC_URL: http://localhost:8090
-      ICCP_ALLOWED_ORIGINS: http://localhost:8090
+      ICCP_PUBLIC_URL: http://localhost:${ICCP_WEB_PORT:-8090}
+      ICCP_ALLOWED_ORIGINS: http://localhost:${ICCP_WEB_PORT:-8090}
       ICCP_DEV_SECRET: ${ICCP_DEV_SECRET}
       ICCP_FILE_DIR: /app/var/files
       ICCP_SMTP_HOST: mailpit
@@ -53,7 +53,7 @@ services:
   web:
     build: ../frontend
     depends_on: [backend]
-    ports: ["8090:80"]
+    ports: ["${ICCP_WEB_PORT:-8090}:80"]
 
   mailpit:
     image: axllent/mailpit:latest
