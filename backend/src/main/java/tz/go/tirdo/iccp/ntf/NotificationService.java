@@ -1,6 +1,7 @@
 package tz.go.tirdo.iccp.ntf;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -102,16 +103,25 @@ public class NotificationService implements Notifier {
     public record InboxItem(UUID publicId, String eventType, String category, boolean mandatory, String title, String deepLink,
                             String sourceModule, OffsetDateTime createdAt, OffsetDateTime readAt) {
     }
+    private record InboxRow(UUID publicId, String eventType, String category, boolean mandatory, String title,
+                            String deepLink, String sourceModule, OffsetDateTime createdAt, OffsetDateTime readAt,
+                            String paramsJson) {
+    }
+
 
     @Transactional(readOnly = true)
-    public PageResult<InboxItem> inbox(long staffId, boolean unreadOnly, Integer page, Integer size) {
+    public PageResult<InboxItem> inbox(long staffId, boolean unreadOnly, Integer page, Integer size, String language) {
         int p = PageResult.clampPage(page), sz = PageResult.clampSize(size);
         String where = " WHERE recipient_staff_id = :s" + (unreadOnly ? " AND read_at IS NULL" : "");
         long total = jdbc.sql("SELECT count(*) FROM ntf.notification" + where).param("s", staffId).query(Long.class).single();
         List<InboxItem> items = jdbc.sql("""
-                SELECT public_id, event_type, category, mandatory, title, deep_link, source_module, created_at, read_at
+                SELECT public_id, event_type, category, mandatory, title, deep_link, source_module, created_at, read_at,
+                       params::text AS params_json
                   FROM ntf.notification""" + where + " ORDER BY created_at DESC, id DESC LIMIT :lim OFFSET :off")
-                .param("s", staffId).param("lim", sz).param("off", p * sz).query(InboxItem.class).list();
+                .param("s", staffId).param("lim", sz).param("off", p * sz).query(InboxRow.class).list().stream()
+                .map(row -> new InboxItem(row.publicId(), row.eventType(), row.category(), row.mandatory(),
+                        renderInboxTitle(row, language), row.deepLink(), row.sourceModule(), row.createdAt(), row.readAt()))
+                .toList();
         return new PageResult<>(items, total, p, sz);
     }
 
@@ -140,6 +150,18 @@ public class NotificationService implements Notifier {
     public void markReadForSource(long staffId, UUID sourcePublicId) {
         jdbc.sql("UPDATE ntf.notification SET read_at = now() WHERE recipient_staff_id = :s AND source_public_id = :src AND read_at IS NULL")
                 .param("s", staffId).param("src", sourcePublicId).update();
+    }
+
+    private String renderInboxTitle(InboxRow row, String language) {
+        try {
+            Map<String, String> params = mapper.readValue(row.paramsJson(), new TypeReference<>() {});
+            return templates.render(row.eventType(), "IN_APP", "sw".equals(language) ? "sw" : "en", params)
+                    .map(TemplateService.Rendered::body)
+                    .map(title -> truncate(title, 300))
+                    .orElse(row.title());
+        } catch (JsonProcessingException ex) {
+            return row.title();
+        }
     }
 
     private String json(Map<String, String> params) {

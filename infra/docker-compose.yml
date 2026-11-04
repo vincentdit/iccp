@@ -42,6 +42,9 @@ services:
       ICCP_OWNER_PASSWORD: ${ICCP_OWNER_PASSWORD}
       ICCP_PUBLIC_URL: http://localhost:${ICCP_WEB_PORT:-8090}
       ICCP_ALLOWED_ORIGINS: http://localhost:${ICCP_WEB_PORT:-8090}
+      ICCP_AUTH_MODE: ${ICCP_AUTH_MODE:-dev}
+      ICCP_OIDC_ISSUER: ${ICCP_OIDC_ISSUER:-http://localhost:8180/realms/tirdo}
+      ICCP_OIDC_JWK_SET_URI: ${ICCP_OIDC_JWK_SET_URI:-http://host.docker.internal:8180/realms/tirdo/protocol/openid-connect/certs}
       ICCP_DEV_SECRET: ${ICCP_DEV_SECRET}
       ICCP_FILE_DIR: /app/var/files
       ICCP_SMTP_HOST: mailpit

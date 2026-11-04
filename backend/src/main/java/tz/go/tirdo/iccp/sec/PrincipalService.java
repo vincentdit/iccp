@@ -121,7 +121,8 @@ public class PrincipalService implements PrincipalLoader, RoleDirectory {
         Optional<String> existingSubject = jdbc.sql("SELECT keycloak_subject FROM sec.user_account WHERE staff_id = :s")
                 .param("s", staff.get().id()).query(String.class).optional();
         if (existingSubject.isPresent()) {
-            if (!existingSubject.get().startsWith("pending:")) {
+            String linkedSubject = existingSubject.get();
+            if (!linkedSubject.startsWith("pending:") && !linkedSubject.startsWith("dev:")) {
                 log.warn("Sign-in refused: staff {} is already linked to another identity", staff.get().employeeNo());
                 return Optional.empty();
             }

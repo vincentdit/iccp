@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -33,8 +34,9 @@ public class NotificationController {
     @GetMapping("/inbox")
     public PageResult<NotificationService.InboxItem> inbox(@RequestParam(defaultValue = "false") boolean unread,
                                                            @RequestParam(required = false) Integer page,
-                                                           @RequestParam(required = false) Integer size) {
-        return notifications.inbox(CurrentUser.get().staffId(), unread, page, size);
+                                                           @RequestParam(required = false) Integer size,
+                                                           @RequestHeader(name = "Accept-Language", defaultValue = "en") String language) {
+        return notifications.inbox(CurrentUser.get().staffId(), unread, page, size, language);
     }
 
     @GetMapping("/unread-count")

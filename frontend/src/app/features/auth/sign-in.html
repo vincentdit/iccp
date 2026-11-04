@@ -27,9 +27,9 @@
   }
 
   @if (config()?.authMode === 'oidc') {
-    <button class="btn btn-filled btn-large btn-block" type="button" (click)="oidc()" [disabled]="busy()">
+    <a class="btn btn-filled btn-large btn-block" [href]="oidcUrl() || null" [attr.aria-disabled]="!oidcUrl()">
       <app-icon name="lock" /> {{ 'signin.oidc' | t }}
-    </button>
+    </a>
     <p class="t-footnote secondary center">{{ 'signin.oidcHelp' | t }}</p>
   } @else if (config()?.authMode === 'dev') {
     <div class="group-label">{{ 'signin.devLabel' | t }}</div>

@@ -68,6 +68,7 @@ iccp:
   auth:
     mode: ${ICCP_AUTH_MODE:oidc}
     issuer: ${ICCP_OIDC_ISSUER:http://localhost:8180/realms/tirdo}
+    jwk-set-uri: ${ICCP_OIDC_JWK_SET_URI:}
     client-id: iccp-web
     dev-secret: ${ICCP_DEV_SECRET:}
     allowed-origins: ${ICCP_ALLOWED_ORIGINS:http://localhost:4200}

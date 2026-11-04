@@ -25,6 +25,7 @@ public record IccpProperties(
      */
     public record Auth(@DefaultValue("oidc") String mode,
                        @DefaultValue("") String issuer,
+                       @DefaultValue("") String jwkSetUri,
                        @DefaultValue("iccp-web") String clientId,
                        @DefaultValue("") String devSecret,
                        @DefaultValue("http://localhost:4200") List<String> allowedOrigins) {

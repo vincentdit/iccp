@@ -26,6 +26,7 @@ export class SignIn {
   protected i18n = inject(I18n);
 
   protected config = signal<PublicConfig | null>(null);
+  protected oidcUrl = signal<string | null>(null);
   protected people = signal<DevUser[]>([]);
   protected busy = signal<string | null>(null);
   protected error = signal<string | null>(null);
@@ -43,7 +44,11 @@ export class SignIn {
     try {
       const c = await this.auth.loadConfig();
       this.config.set(c);
-      if (c.authMode === 'dev') this.people.set(await firstValueFrom(this.http.get<DevUser[]>('/api/v1/dev/users')));
+      if (c.authMode === 'oidc') {
+        this.oidcUrl.set(await this.auth.oidcAuthorizeUrl(this.route.snapshot.queryParamMap.get('returnTo') || '/'));
+      } else if (c.authMode === 'dev') {
+        this.people.set(await firstValueFrom(this.http.get<DevUser[]>('/api/v1/dev/users')));
+      }
     } catch (e) {
       this.offline.set(serverUnreachable(e));
       this.error.set(serverUnreachable(e) ? null : errorText(e));

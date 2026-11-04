@@ -52,6 +52,10 @@ export class Auth {
 
   /** Starts the OIDC redirect to Keycloak. */
   async oidcSignIn(returnTo = '/'): Promise<void> {
+    location.assign(await this.oidcAuthorizeUrl(returnTo));
+  }
+
+  async oidcAuthorizeUrl(returnTo = '/'): Promise<string> {
     const c = await this.loadConfig();
     const verifier = randomString(64);
     const state = randomString(24);
@@ -67,28 +71,24 @@ export class Auth {
       code_challenge: challenge,
       code_challenge_method: 'S256',
     }).toString();
-    location.assign(url.toString());
+    return url.toString();
   }
 
   /** Completes the OIDC redirect: exchanges the code for tokens. */
   async completeOidc(params: URLSearchParams): Promise<string> {
-    const c = await this.loadConfig();
     const saved = JSON.parse(sessionStorage.getItem(PKCE_KEY) ?? '{}');
     sessionStorage.removeItem(PKCE_KEY);
     if (!params.get('code') || params.get('state') !== saved.state) {
       throw new Error('The sign-in response did not match this browser session. Start again.');
     }
-    const body = new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: c.clientId,
-      code: params.get('code')!,
-      redirect_uri: `${location.origin}/auth/callback`,
-      code_verifier: saved.verifier,
-    });
-    const r = await fetch(`${c.issuer}/protocol/openid-connect/token`, {
+    const r = await fetch('/api/v1/public/oidc/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: params.get('code')!,
+        codeVerifier: saved.verifier,
+        redirectUri: `${location.origin}/auth/callback`,
+      }),
     });
     if (!r.ok) throw new Error('Keycloak did not accept the sign-in. Start again.');
     const t = await r.json();

@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.jwt.SupplierJwtDecoder;
@@ -37,6 +38,11 @@ public class JwtConfig {
         }
         if (auth.issuer().isBlank()) {
             throw new IllegalStateException("iccp.auth.issuer must be set when iccp.auth.mode=oidc");
+        }
+        if (auth.jwkSetUri() != null && !auth.jwkSetUri().isBlank()) {
+            NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(auth.jwkSetUri()).build();
+            decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(auth.issuer()));
+            return decoder;
         }
         // Lazy: the app starts even if Keycloak is briefly unavailable.
         return new SupplierJwtDecoder(() -> JwtDecoders.fromIssuerLocation(auth.issuer()));
