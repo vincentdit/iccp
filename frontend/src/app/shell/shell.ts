@@ -17,6 +17,7 @@ interface NavItem {
   tile: string;
   exact?: boolean;
   badge?: () => number;
+  external?: boolean;
 }
 
 /**
@@ -48,10 +49,13 @@ export class Shell {
       { path: '/', icon: 'home', label: this.i18n.t('nav.home'), tile: 'blue', exact: true },
       { path: '/announcements', icon: 'megaphone', label: this.i18n.t('nav.announcements'), tile: 'orange' },
       { path: '/finance', icon: 'wallet', label: this.i18n.t('nav.diary'), tile: 'green', exact: true },
+      ...(this.auth.config()?.mmsEnabled ? [{ path: this.mmsMeetingsUrl(), icon: 'calendar', label: this.i18n.lang() === 'sw' ? 'Mikutano' : 'Meetings', tile: 'indigo', external: true }] : []),
       { path: '/directory', icon: 'users', label: this.i18n.t('nav.directory'), tile: 'teal' },
       { path: '/notifications', icon: 'bell', label: this.i18n.t('nav.notifications'), tile: 'red', badge: () => this.session.unread() },
     ];
   });
+
+  protected mmsMeetingsUrl = computed(() => (this.auth.config()?.mmsUrl ?? 'http://localhost:4200').replace(/\/$/, '') + '/meetings');
 
   protected work = computed<NavItem[]>(() => {
     this.i18n.lang();
@@ -75,7 +79,7 @@ export class Shell {
     const short = ['nav.home', 'tab.announcements', 'tab.diary', 'tab.directory'];
     return this.primary()
       .slice(0, 4)
-      .map((item, i) => ({ ...item, label: this.i18n.t(short[i]) }));
+      .map((item, i) => ({ ...item, label: i === 3 ? (this.i18n.lang() === 'sw' ? 'Mikutano' : 'Meetings') : this.i18n.t(short[i]) }));
   });
 
   constructor() {

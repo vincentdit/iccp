@@ -43,7 +43,8 @@ public class SecurityConfig {
                     .contentSecurityPolicy(c -> c.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
                     .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
             .authorizeHttpRequests(a -> a
-                    .requestMatchers("/api/v1/public/**", "/api/v1/dev/**", "/actuator/health/**", "/actuator/info").permitAll()
+                    .requestMatchers("/api/v1/public/**", "/api/v1/dev/**", "/api/v1/integrations/mms/directory",
+                            "/actuator/health/**", "/actuator/info").permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o

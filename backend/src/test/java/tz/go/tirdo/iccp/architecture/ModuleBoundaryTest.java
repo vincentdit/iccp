@@ -35,7 +35,8 @@ class ModuleBoundaryTest {
             "sec", Set.of("dir"),
             "ntf", Set.of("dir", "sec"),
             "com", Set.of("dir", "sec", "ntf"),
-            "fin", Set.of("dir", "sec", "ntf"));
+            "fin", Set.of("dir", "sec", "ntf"),
+            "mtg", Set.of("dir", "sec", "ntf"));
     private static final Set<String> SHARED_SCHEMAS = Set.of("dir", "core", "wf", "integ");
     private static final Set<String> ALL_SCHEMAS = Set.of("core", "dir", "sec", "wf", "integ", "ntf", "com", "fin", "mtg", "tsk", "msg", "doc",
             "prj", "req", "trn", "ana", "fdb");

@@ -15,6 +15,8 @@ public final class Roles {
     public static final String SYS_ADMIN = "SYS_ADMIN";
     public static final String SECURITY_ADMIN = "SECURITY_ADMIN";
     public static final String AUDITOR = "AUDITOR";
+    public static final String MEETING_SECRETARY = "MEETING_SECRETARY";
+    public static final String MEETING_CHAIR = "MEETING_CHAIR";
 
     private Roles() {
     }

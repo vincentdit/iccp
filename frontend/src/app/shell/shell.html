@@ -2,9 +2,7 @@
 
 <aside class="sidebar" [attr.aria-label]="'shell.navigation' | t">
   <div class="brand">
-    <div class="mark" aria-hidden="true">
-      <svg viewBox="0 0 32 32"><path d="M6 9h20M16 9v16M10 25h12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
-    </div>
+    <img class="mark" src="/tirdo-logo.jpg" alt="TIRDO logo" />
     <div>
       <div class="t-headline">ICCP</div>
       <div class="t-caption secondary">TIRDO</div>
@@ -18,6 +16,12 @@
 
   <nav>
     @for (item of primary(); track item.path) {
+      @if (item.external) {
+      <a class="nav-item" [href]="item.path" title="Open TIRDO Meeting Management System">
+        <span class="tile" [class]="item.tile"><app-icon [name]="item.icon" /></span>
+        <span class="grow">{{ item.label }}</span><app-icon class="external-mark" name="external" />
+      </a>
+      } @else {
       <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }" ariaCurrentWhenActive="page">
         <span class="tile" [class]="item.tile"><app-icon [name]="item.icon" /></span>
         <span class="grow">{{ item.label }}</span>
@@ -25,6 +29,7 @@
           <span class="count">{{ item.badge() }}</span>
         }
       </a>
+      }
     }
     @if (work().length) {
       <div class="nav-section">{{ 'nav.work' | t }}</div>
@@ -69,10 +74,14 @@
 
 <nav class="tabbar" [attr.aria-label]="'shell.navigation' | t">
   @for (item of tabs(); track item.path) {
+    @if (item.external) {
+    <a [href]="item.path"><span class="tab-icon"><app-icon [name]="item.icon" /></span><span>{{ item.label }}</span></a>
+    } @else {
     <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }" ariaCurrentWhenActive="page">
       <span class="tab-icon"><app-icon [name]="item.icon" /></span>
       <span>{{ item.label }}</span>
     </a>
+    }
   }
   <a routerLink="/more" routerLinkActive="active" ariaCurrentWhenActive="page">
     <span class="tab-icon">

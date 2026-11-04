@@ -57,6 +57,29 @@ public class DirectoryQueries {
     public record ProfileUpdate(String bio, List<String> expertise, Boolean mobileVisible, String preferredLanguage) {
     }
 
+    public record DirectoryExport(UUID staffPublicId, String employeeNo, String displayName, String email,
+                                  String mobilePhone, String unitCode, String unitName, String positionTitle,
+                                  String supervisorEmployeeNo, String preferredLanguage, boolean active) {
+    }
+
+    /** Service-to-service directory projection. It deliberately excludes biographies and private profile data. */
+    @Transactional(readOnly = true)
+    public List<DirectoryExport> exportForMms() {
+        return jdbc.sql("""
+                SELECT s.public_id AS staff_public_id, s.employee_no,
+                       concat_ws(' ', nullif(s.title, ''), s.first_name, s.last_name) AS display_name,
+                       s.official_email AS email, s.mobile_phone, u.code AS unit_code, u.name_en AS unit_name,
+                       p.title_en AS position_title, manager.employee_no AS supervisor_employee_no,
+                       s.preferred_language,
+                       (s.employment_status IN ('ACTIVE','ON_LEAVE')) AS active
+                  FROM dir.staff_member s
+                  JOIN dir.org_unit u ON u.id = s.org_unit_id
+                  LEFT JOIN dir.position p ON p.id = s.position_id
+                  LEFT JOIN dir.staff_member manager ON manager.id = s.line_manager_id
+                 ORDER BY s.employee_no
+                """).query(DirectoryExport.class).list();
+    }
+
     private static final String SUMMARY_SELECT = """
             SELECT s.id, s.public_id, s.employee_no,
                    concat_ws(' ', nullif(s.title, ''), s.first_name, s.last_name) AS display_name,

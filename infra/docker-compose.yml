@@ -47,6 +47,7 @@ services:
       ICCP_SMTP_HOST: mailpit
       ICCP_SMTP_PORT: "1025"
       ICCP_EMAIL_ENABLED: "true"
+      ICCP_INTEGRATIONS_MMS_SYNC_SECRET: ${ICCP_MMS_SYNC_SECRET:-local-iccp-mms-sync-2026}
     volumes:
       - files:/app/var/files
 

@@ -18,12 +18,14 @@ public class PublicConfigController {
         this.props = props;
     }
 
-    public record PublicConfig(String authMode, String issuer, String clientId, String version, List<String> languages, String timeZone) {
+    public record PublicConfig(String authMode, String issuer, String clientId, String version, List<String> languages,
+                               String timeZone, String mmsUrl, boolean mmsEnabled, boolean internalMeetingsEnabled) {
     }
 
     @GetMapping("/config")
     public PublicConfig config() {
         return new PublicConfig(props.auth().isDev() ? "dev" : "oidc", props.auth().issuer(), props.auth().clientId(),
-                props.app().version(), List.of("en", "sw"), props.notifications().timeZone());
+                props.app().version(), List.of("en", "sw"), props.notifications().timeZone(),
+                props.integrations().mmsUrl(), props.integrations().mmsEnabled(), props.integrations().internalMeetingsEnabled());
     }
 }

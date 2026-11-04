@@ -14,6 +14,7 @@ public record IccpProperties(
         @DefaultValue App app,
         @DefaultValue Files files,
         @DefaultValue Notifications notifications,
+        @DefaultValue Integrations integrations,
         @DefaultValue Demo demo) {
 
     /**
@@ -59,6 +60,12 @@ public record IccpProperties(
                                 @DefaultValue("false") boolean emailEnabled,
                                 @DefaultValue("log") String smsProvider,
                                 @DefaultValue("Africa/Dar_es_Salaam") String timeZone) {
+    }
+
+    public record Integrations(@DefaultValue("http://localhost:4200") String mmsUrl,
+                               @DefaultValue("true") boolean mmsEnabled,
+                               @DefaultValue("false") boolean internalMeetingsEnabled,
+                               @DefaultValue("") String mmsSyncSecret) {
     }
 
     /** @param enabled load fictional demo staff, finance data and notices on an empty database */

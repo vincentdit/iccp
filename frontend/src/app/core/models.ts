@@ -22,6 +22,9 @@ export interface PublicConfig {
   version: string;
   languages: string[];
   timeZone: string;
+  mmsUrl: string;
+  mmsEnabled: boolean;
+  internalMeetingsEnabled: boolean;
 }
 
 export interface Me {
@@ -45,8 +48,16 @@ export interface Me {
     hrAdmin: boolean;
     securityAdmin: boolean;
     auditSearch: boolean;
+    manageMeetings: boolean;
   };
 }
+
+// ---------------------------------------------------------------- meetings
+export interface MeetingType { code: string; nameEn: string; nameSw: string; confidentiality: string; quorumPercent: number; }
+export interface MeetingSummary { publicId: string; title: string; typeCode: string; typeNameEn: string; typeNameSw: string; startsAt: string; endsAt: string; mode: string; venue?: string; onlineLink?: string; status: string; confidentiality: string; chairName: string; secretaryName: string; participantCount: number; myRole: string; myRsvp?: string; }
+export interface MeetingParticipant { publicId: string; displayName: string; positionTitle?: string; unitName: string; role: string; rsvp?: string; attendance?: string; }
+export interface MeetingDetail { meeting: MeetingSummary; participants: MeetingParticipant[]; agenda: { itemNo: number; title: string; minutesAllocated?: number }[]; }
+export interface MeetingMinutes { versionNo?: number; status?: string; summary: string; resolutions: { publicId?: string; resolutionNo?: string; text: string; ownerStaffPublicId?: string; ownerName?: string; dueOn?: string; status?: string }[]; canEdit: boolean; canSubmit: boolean; canApprove: boolean; }
 
 export interface DevUser {
   employeeNo: string;

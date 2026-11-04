@@ -20,6 +20,14 @@ export const signedInGuard: CanActivateFn = async (_route, state) => {
   return true;
 };
 
+/** Redirects legacy ICCP meeting bookmarks to MMIMS, the configured system of record. */
+export const meetingsSystemGuard: CanActivateFn = async () => {
+  const config = await inject(Auth).loadConfig();
+  if (config.internalMeetingsEnabled || !config.mmsEnabled) return true;
+  location.assign(config.mmsUrl.replace(/\/$/, '') + '/meetings');
+  return false;
+};
+
 /** Requires one of the "can" capabilities from /me; others see Home instead of a broken page. */
 export function canGuard(...anyOf: (keyof Me['can'])[]): CanActivateFn {
   return () => {

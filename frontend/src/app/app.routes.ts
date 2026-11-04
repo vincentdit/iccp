@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { canGuard, signedInGuard } from './core/guards';
+import { canGuard, meetingsSystemGuard, signedInGuard } from './core/guards';
 import { Shell } from './shell/shell';
 
 export const routes: Routes = [
@@ -74,6 +74,14 @@ export const routes: Routes = [
         ],
       },
       { path: 'notifications', loadComponent: () => import('./features/notifications/inbox').then((m) => m.InboxPage), title: 'Notifications – ICCP' },
+      {
+        path: 'meetings', canActivate: [meetingsSystemGuard], children: [
+          { path: '', loadComponent: () => import('./features/meetings/meetings').then((m) => m.MeetingsPage), title: 'Meetings – ICCP' },
+          { path: 'new', canActivate: [canGuard('manageMeetings')], loadComponent: () => import('./features/meetings/schedule').then((m) => m.ScheduleMeeting), title: 'Schedule meeting – ICCP' },
+          { path: ':id/minutes', loadComponent: () => import('./features/meetings/minutes').then((m) => m.MinutesPage), title: 'Meeting minutes – ICCP' },
+          { path: ':id', loadComponent: () => import('./features/meetings/meeting-detail').then((m) => m.MeetingDetailPage), title: 'Meeting – ICCP' },
+        ],
+      },
       {
         path: 'admin/hr',
         canActivate: [canGuard('hrAdmin')],
