@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <ul>
  *   <li>The account is found by the Keycloak subject. On first sign-in it is linked to the HR
- *       record by official email (or employee number claim) — accounts are never created for
+ *       record by employee number (preferred) or official email — accounts are never created for
  *       people HR does not know.</li>
  *   <li>Disabled accounts and staff who have LEFT or are SUSPENDED are refused.</li>
  *   <li>Roles = STAFF + active role assignments + roles derived from the directory
@@ -107,9 +107,13 @@ public class PrincipalService implements PrincipalLoader, RoleDirectory {
     }
 
     private Optional<Account> linkFirstSignIn(Jwt jwt) {
-        Optional<StaffRef> staff = directory.findByEmail(jwt.getClaimAsString("email"));
-        if (staff.isEmpty() && jwt.hasClaim("employee_no")) {
-            staff = directory.findByEmployeeNo(jwt.getClaimAsString("employee_no"));
+        String employeeNo = jwt.getClaimAsString("employee_no");
+        Optional<StaffRef> staff = employeeNo == null || employeeNo.isBlank()
+                ? Optional.empty()
+                : directory.findByEmployeeNo(employeeNo.trim());
+        if (staff.isEmpty()) {
+            String email = jwt.getClaimAsString("email");
+            staff = email == null || email.isBlank() ? Optional.empty() : directory.findByEmail(email.trim());
         }
         if (staff.isEmpty() || !staff.get().isActive()) {
             return Optional.empty();

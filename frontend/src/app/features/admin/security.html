@@ -98,7 +98,7 @@
             <tr class="clickable" (click)="expanded.set(expanded() === r.chainSeq ? null : r.chainSeq)">
               <td class="r num secondary">{{ r.chainSeq }}</td>
               <td class="nowrap">{{ i18n.dateTime(r.occurredAt) }}</td>
-              <td>{{ r.actorSubject }}</td>
+                <td>{{ r.actorName || r.actorSubject }} @if (r.actorName) { <div class="t-footnote secondary">{{ r.actorSubject }}</div> }</td>
               <td><strong>{{ r.module }}</strong> {{ r.action }}<div class="t-footnote secondary">{{ r.resourceType }} {{ r.resourceId }}</div></td>
               <td><app-status [value]="r.outcome" /></td>
             </tr>

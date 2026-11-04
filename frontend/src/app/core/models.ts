@@ -464,6 +464,7 @@ export interface AuditRow {
   occurredAt: string;
   actorSubject: string;
   actorStaffId?: number;
+  actorName?: string;
   module: string;
   action: string;
   resourceType: string;

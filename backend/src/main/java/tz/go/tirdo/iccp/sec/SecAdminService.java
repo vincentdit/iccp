@@ -121,7 +121,7 @@ public class SecAdminService {
         principals.evict(null);
     }
 
-    public record AuditRow(long chainSeq, OffsetDateTime occurredAt, String actorSubject, Long actorStaffId, String module, String action,
+    public record AuditRow(long chainSeq, OffsetDateTime occurredAt, String actorSubject, Long actorStaffId, String actorName, String module, String action,
                            String resourceType, String resourceId, String outcome, String requestId, String details) {
     }
 
@@ -131,17 +131,25 @@ public class SecAdminService {
         int pg = PageResult.clampPage(page), sz = PageResult.clampSize(size);
         StringBuilder where = new StringBuilder(" WHERE true");
         Map<String, Object> p = new LinkedHashMap<>();
-        if (actor != null && !actor.isBlank()) { where.append(" AND actor_subject = :actor"); p.put("actor", actor); }
-        if (module != null && !module.isBlank()) { where.append(" AND module = :module"); p.put("module", module.toUpperCase()); }
-        if (action != null && !action.isBlank()) { where.append(" AND action = :action"); p.put("action", action.toUpperCase()); }
-        if (resourceId != null && !resourceId.isBlank()) { where.append(" AND resource_id = :rid"); p.put("rid", resourceId); }
-        if (from != null) { where.append(" AND occurred_at >= :from"); p.put("from", from); }
-        if (to != null) { where.append(" AND occurred_at < :to"); p.put("to", to); }
-        long total = jdbc.sql("SELECT count(*) FROM sec.audit_event" + where).params(p).query(Long.class).single();
+        if (actor != null && !actor.isBlank()) {
+            where.append(" AND (e.actor_subject = :actor OR upper(s.employee_no) = upper(:actor) OR " +
+                    "lower(concat_ws(' ', nullif(s.title, ''), s.first_name, s.last_name)) LIKE lower(:actorLike))");
+            p.put("actor", actor.trim());
+            p.put("actorLike", "%" + actor.trim() + "%");
+        }
+        if (module != null && !module.isBlank()) { where.append(" AND e.module = :module"); p.put("module", module.toUpperCase()); }
+        if (action != null && !action.isBlank()) { where.append(" AND e.action = :action"); p.put("action", action.toUpperCase()); }
+        if (resourceId != null && !resourceId.isBlank()) { where.append(" AND e.resource_id = :rid"); p.put("rid", resourceId); }
+        if (from != null) { where.append(" AND e.occurred_at >= :from"); p.put("from", from); }
+        if (to != null) { where.append(" AND e.occurred_at < :to"); p.put("to", to); }
+        String fromClause = " FROM sec.audit_event e LEFT JOIN dir.staff_member s ON s.id = e.actor_staff_id";
+        long total = jdbc.sql("SELECT count(*)" + fromClause + where).params(p).query(Long.class).single();
         List<AuditRow> rows = jdbc.sql("""
-                SELECT chain_seq, occurred_at, actor_subject, actor_staff_id, module, action, resource_type, resource_id, outcome,
-                       request_id::text AS request_id, details::text AS details
-                  FROM sec.audit_event""" + where + " ORDER BY chain_seq DESC LIMIT :lim OFFSET :off")
+                SELECT e.chain_seq, e.occurred_at, e.actor_subject, e.actor_staff_id,
+                       nullif(concat_ws(' ', nullif(s.title, ''), s.first_name, s.last_name), '') AS actor_name,
+                       e.module, e.action, e.resource_type, e.resource_id, e.outcome,
+                       e.request_id::text AS request_id, e.details::text AS details
+                """ + fromClause + where + " ORDER BY e.chain_seq DESC LIMIT :lim OFFSET :off")
                 .params(p).param("lim", sz).param("off", pg * sz).query(AuditRow.class).list();
         audit.record("SEC", "AUDIT_SEARCH", "audit_event", null, Map.of("filters", p.keySet().toString()));
         return new PageResult<>(rows, total, pg, sz);
