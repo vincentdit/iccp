@@ -68,6 +68,11 @@ public class PreferenceService {
         }
     }
 
+    public boolean emailDigest(long staffId) {
+        return jdbc.sql("SELECT email_digest FROM ntf.preference_setting WHERE staff_id = :s")
+                .param("s", staffId).query(Boolean.class).optional().orElse(false);
+    }
+
     public Quiet quietHours(long staffId) {
         return jdbc.sql("SELECT quiet_start, quiet_end FROM ntf.preference_setting WHERE staff_id = :s")
                 .param("s", staffId).query(Quiet.class).optional().orElse(new Quiet(LocalTime.of(20, 0), LocalTime.of(7, 0)));

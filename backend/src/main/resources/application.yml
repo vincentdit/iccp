@@ -81,12 +81,27 @@ iccp:
     minio-endpoint: ${ICCP_MINIO_ENDPOINT:}
     minio-access-key: ${ICCP_MINIO_ACCESS_KEY:}
     minio-secret-key: ${ICCP_MINIO_SECRET_KEY:}
-    minio-bucket: iccp
+    minio-bucket: ${ICCP_MINIO_BUCKET:iccp}
+    max-upload-bytes: ${ICCP_MAX_UPLOAD_BYTES:20971520}
+    scan-provider: ${ICCP_FILE_SCAN_PROVIDER:disabled}
+    clamav-host: ${ICCP_CLAMAV_HOST:clamav}
+    clamav-port: ${ICCP_CLAMAV_PORT:3310}
+    scan-connect-timeout-ms: ${ICCP_SCAN_CONNECT_TIMEOUT_MS:3000}
+    scan-read-timeout-ms: ${ICCP_SCAN_READ_TIMEOUT_MS:30000}
+    scan-max-attempts: ${ICCP_SCAN_MAX_ATTEMPTS:3}
   notifications:
     email-from: "ICCP <no-reply@tirdo.go.tz>"
     email-enabled: ${ICCP_EMAIL_ENABLED:false}
-    sms-provider: log
-    time-zone: Africa/Dar_es_Salaam
+    sms-provider: ${ICCP_SMS_PROVIDER:log}
+    sms-url: ${ICCP_SMS_URL:}
+    sms-api-key: ${ICCP_SMS_API_KEY:}
+    sms-sender-id: ${ICCP_SMS_SENDER_ID:TIRDO}
+    sms-connect-timeout-ms: ${ICCP_SMS_CONNECT_TIMEOUT_MS:5000}
+    sms-read-timeout-ms: ${ICCP_SMS_READ_TIMEOUT_MS:10000}
+    sms-batch-size: ${ICCP_SMS_BATCH_SIZE:20}
+    sms-receipt-secret: ${ICCP_SMS_RECEIPT_SECRET:}
+    digest-cron: ${ICCP_EMAIL_DIGEST_CRON:0 30 7 * * *}
+    time-zone: ${ICCP_TIME_ZONE:Africa/Dar_es_Salaam}
   demo:
     enabled: false
 

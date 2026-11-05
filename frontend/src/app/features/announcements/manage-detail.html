@@ -120,6 +120,31 @@
           }
         </ul>
 
+        <div class="group-label">{{ 'detail.attachments' | t }}</div>
+        <ul class="list">
+          @for (file of a.attachments; track file.id) {
+            <li class="list-row">
+              <span class="tile gray"><app-icon name="file" /></span>
+              <span class="grow">
+                <span class="title">{{ file.fileName }}</span>
+                <span class="sub">{{ size(file.sizeBytes) }}, {{ ('file.' + file.scanStatus.toLowerCase()) | t }}</span>
+              </span>
+              @if (file.scanStatus === 'CLEAN') {
+                <button class="icon-btn" type="button" (click)="download(file.id, file.fileName)" [attr.aria-label]="'common.download' | t">
+                  <app-icon name="download" />
+                </button>
+              }
+            </li>
+          } @empty {
+            <li class="list-row"><span class="grow secondary">{{ 'file.none' | t }}</span></li>
+          }
+        </ul>
+        @if (a.canEdit) {
+          <label class="btn" [class.disabled]="busy()">
+            <app-icon name="paperclip" /> {{ 'file.upload' | t }}
+            <input type="file" hidden (change)="upload($event)" [disabled]="busy()" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.docx,.xlsx,.pptx" />
+          </label>
+        }
         @if (a.decisions.length) {
           <div class="group-label">{{ 'manage.history' | t }}</div>
           <ul class="list">

@@ -76,6 +76,7 @@ public class NotificationService implements Notifier {
                     .param("t", truncate(title, 300)).param("l", r.deepLink()).param("mod", r.sourceModule()).param("src", r.sourcePublicId())
                     .param("p", json(params)).query(Long.class).single();
             if (r.channels().contains(NotificationRequest.Channel.EMAIL) && emailOn.getOrDefault(c.staffId(), true)
+                    && (mandatory || !preferences.emailDigest(c.staffId()))
                     && c.email() != null && templates.exists(r.eventType(), "EMAIL")) {
                 queue(id, "EMAIL");
             }

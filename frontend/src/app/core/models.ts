@@ -203,6 +203,7 @@ export interface Attachment {
   fileName: string;
   contentType: string;
   sizeBytes: number;
+  scanStatus: 'PENDING' | 'CLEAN' | 'INFECTED' | 'ERROR';
 }
 
 export interface FeedDetail {

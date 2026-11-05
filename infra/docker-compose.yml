@@ -35,6 +35,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: ${ICCP_PROFILES:-dev,demo}
       ICCP_DB_URL: jdbc:postgresql://postgres:5432/iccp
@@ -46,13 +50,26 @@ services:
       ICCP_OIDC_ISSUER: ${ICCP_OIDC_ISSUER:-http://localhost:8180/realms/tirdo}
       ICCP_OIDC_JWK_SET_URI: ${ICCP_OIDC_JWK_SET_URI:-http://host.docker.internal:8180/realms/tirdo/protocol/openid-connect/certs}
       ICCP_DEV_SECRET: ${ICCP_DEV_SECRET}
-      ICCP_FILE_DIR: /app/var/files
+      ICCP_FILE_STORE: minio
+      ICCP_MINIO_ENDPOINT: http://minio:9000
+      ICCP_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      ICCP_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      ICCP_MINIO_BUCKET: ${ICCP_MINIO_BUCKET:-iccp}
+      ICCP_MAX_UPLOAD_BYTES: ${ICCP_MAX_UPLOAD_BYTES:-20971520}
+      ICCP_FILE_SCAN_PROVIDER: clamav
+      ICCP_CLAMAV_HOST: clamav
+      ICCP_CLAMAV_PORT: "3310"
+      ICCP_SCAN_MAX_ATTEMPTS: ${ICCP_SCAN_MAX_ATTEMPTS:-3}
       ICCP_SMTP_HOST: mailpit
       ICCP_SMTP_PORT: "1025"
       ICCP_EMAIL_ENABLED: "true"
+      ICCP_SMS_PROVIDER: ${ICCP_SMS_PROVIDER:-log}
+      ICCP_SMS_URL: ${ICCP_SMS_URL:-}
+      ICCP_SMS_API_KEY: ${ICCP_SMS_API_KEY:-}
+      ICCP_SMS_SENDER_ID: ${ICCP_SMS_SENDER_ID:-TIRDO}
+      ICCP_SMS_CONNECT_TIMEOUT_MS: ${ICCP_SMS_CONNECT_TIMEOUT_MS:-5000}
+      ICCP_SMS_READ_TIMEOUT_MS: ${ICCP_SMS_READ_TIMEOUT_MS:-10000}
       ICCP_INTEGRATIONS_MMS_SYNC_SECRET: ${ICCP_MMS_SYNC_SECRET:-local-iccp-mms-sync-2026}
-    volumes:
-      - files:/app/var/files
 
   web:
     build: ../frontend
@@ -77,7 +94,6 @@ services:
       - ./keycloak/tirdo-realm.json:/opt/keycloak/data/import/tirdo-realm.json:ro
 
   minio:
-    profiles: ["sso"]
     image: minio/minio:latest
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
@@ -87,7 +103,23 @@ services:
     volumes:
       - miniodata:/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  clamav:
+    image: clamav/clamav:1.4
+    volumes:
+      - clamdata:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 volumes:
   pgdata:
   files:
   miniodata:
+  clamdata:

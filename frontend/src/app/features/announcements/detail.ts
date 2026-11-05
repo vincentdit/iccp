@@ -45,9 +45,9 @@ import { Icon } from '../../ui/icon';
             <div class="group-label">{{ 'detail.attachments' | t }}</div>
             <div class="list">
               @for (a of n.attachments; track a.id) {
-                <button class="list-row" type="button" (click)="download(a.id, a.fileName)" style="--sep-inset: 58px">
+                <button class="list-row" type="button" (click)="download(a.id, a.fileName)" [disabled]="a.scanStatus !== 'CLEAN'" style="--sep-inset: 58px">
                   <span class="tile gray"><app-icon name="file" /></span>
-                  <span class="grow"><span class="title">{{ a.fileName }}</span><span class="sub">{{ size(a.sizeBytes) }}</span></span>
+                  <span class="grow"><span class="title">{{ a.fileName }}</span><span class="sub">{{ size(a.sizeBytes) }}, {{ ('file.' + a.scanStatus.toLowerCase()) | t }}</span></span>
                   <app-icon class="chev" name="download" />
                 </button>
               }

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
+import tz.go.tirdo.iccp.platform.config.IccpProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import tz.go.tirdo.iccp.dir.api.DirectoryApi;
@@ -43,9 +44,10 @@ public class DeliveryDispatcher {
     private final SmsGateway sms;
     private final ObjectMapper mapper;
     private final WorkingDays calendar;
+    private final int smsBatchSize;
 
     public DeliveryDispatcher(JdbcClient jdbc, TransactionTemplate tx, TemplateService templates, PreferenceService preferences,
-                              DirectoryApi directory, EmailSender email, SmsGateway sms, ObjectMapper mapper, WorkingDays calendar) {
+                              DirectoryApi directory, EmailSender email, SmsGateway sms, ObjectMapper mapper, WorkingDays calendar, IccpProperties props) {
         this.jdbc = jdbc;
         this.tx = tx;
         this.templates = templates;
@@ -55,6 +57,7 @@ public class DeliveryDispatcher {
         this.sms = sms;
         this.mapper = mapper;
         this.calendar = calendar;
+        this.smsBatchSize = props.notifications().smsBatchSize();
     }
 
     record Due(long attemptId, long notificationId, String channel, int attemptNo, String status, long recipientStaffId,
@@ -84,8 +87,13 @@ public class DeliveryDispatcher {
                      ORDER BY l.id
                      LIMIT 200
                     """).query(Due.class).list();
+            int smsCount = 0;
             for (Due d : due) {
+                if ("SMS".equals(d.channel()) && smsCount >= smsBatchSize) {
+                    continue;
+                }
                 deliver(d);
+                if ("SMS".equals(d.channel())) smsCount++;
             }
         }));
     }
@@ -113,7 +121,7 @@ public class DeliveryDispatcher {
         try {
             String ref = "EMAIL".equals(d.channel())
                     ? email.send(c.email(), msg.get().subject() == null ? "TIRDO ICCP" : msg.get().subject(), msg.get().body())
-                    : sms.send(c.mobilePhone(), msg.get().body());
+                    : sms.send(c.mobilePhone(), msg.get().body(), "iccp-notification-" + d.notificationId());
             record(d, attempt, "SENT", ref, null);
         } catch (Exception e) {
             log.warn("Delivery {} {} attempt {} failed: {}", d.notificationId(), d.channel(), attempt, e.getMessage());

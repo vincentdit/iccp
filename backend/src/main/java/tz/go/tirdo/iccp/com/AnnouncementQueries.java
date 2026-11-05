@@ -265,21 +265,28 @@ public class AnnouncementQueries {
     @Transactional(readOnly = true)
     public Download download(long attachmentId) {
         IccpPrincipal me = CurrentUser.get();
-        record Att(String objectKey, String fileName, String contentType, long sizeBytes, long authorStaffId, boolean recipient) { }
+        record Att(String objectKey, String fileName, String contentType, long sizeBytes, long authorStaffId,
+                   String scanStatus, boolean recipient) { }
         Att att = jdbc.sql("""
                 SELECT x.object_key, x.file_name, x.content_type, x.size_bytes, a.author_staff_id,
+                       coalesce(fs.status, 'CLEAN') AS scan_status,
                        EXISTS (SELECT 1 FROM com.announcement_recipient r WHERE r.announcement_id = a.id AND r.staff_id = :me) AS recipient
                   FROM com.announcement_attachment x JOIN com.announcement a ON a.id = x.announcement_id
+                  LEFT JOIN integ.file_scan fs ON fs.object_key = x.object_key
                  WHERE x.id = :id
                 """).param("id", attachmentId).param("me", me.staffId()).query(Att.class).optional().orElseThrow(ApiException::notFound);
-        if (!att.recipient() && att.authorStaffId() != me.staffId() && !me.hasRole(Roles.COMMS_APPROVER)) {
+        if (!"CLEAN".equals(att.scanStatus()) || (!att.recipient() && att.authorStaffId() != me.staffId() && !me.hasRole(Roles.COMMS_APPROVER))) {
             throw ApiException.notFound();
         }
         return new Download(att.fileName(), att.contentType(), att.sizeBytes(), files.open(att.objectKey()));
     }
 
     private List<ComTypes.Attachment> attachments(long announcementId) {
-        return jdbc.sql("SELECT id, file_name, content_type, size_bytes FROM com.announcement_attachment WHERE announcement_id = :a ORDER BY id")
+        return jdbc.sql("""
+                SELECT a.id, a.file_name, a.content_type, a.size_bytes, coalesce(fs.status, 'CLEAN') AS scan_status
+                  FROM com.announcement_attachment a LEFT JOIN integ.file_scan fs ON fs.object_key = a.object_key
+                 WHERE a.announcement_id = :a ORDER BY a.id
+                """)
                 .param("a", announcementId).query(ComTypes.Attachment.class).list();
     }
 }

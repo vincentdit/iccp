@@ -96,6 +96,35 @@ export class ManageDetailPage {
     });
   }
 
+  protected upload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.busy.set(true);
+    this.api.upload<ManageDetail>(`/com/announcements/${this.id()}/attachments`, file).subscribe({
+      next: (a) => {
+        this.a.set(a);
+        this.busy.set(false);
+        input.value = '';
+        this.toasts.show(this.i18n.t('file.uploaded'));
+        setTimeout(() => this.load(this.id()), 4000);
+      },
+      error: (e) => {
+        this.busy.set(false);
+        input.value = '';
+        this.toasts.error(e);
+      },
+    });
+  }
+
+  protected download(id: number, name: string) {
+    this.api.download(`/com/attachments/${id}`, name);
+  }
+
+  protected size(bytes: number): string {
+    return bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
   protected audienceText(type: string, value?: string | null): string {
     const t = this.i18n.t('audience.' + type);
     return value ? `${t}: ${value}` : t;

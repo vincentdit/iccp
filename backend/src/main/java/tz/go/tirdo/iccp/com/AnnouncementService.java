@@ -9,6 +9,8 @@ import tz.go.tirdo.iccp.ntf.api.NotificationRequest;
 import tz.go.tirdo.iccp.ntf.api.Notifier;
 import tz.go.tirdo.iccp.ntf.api.NtfCategory;
 import tz.go.tirdo.iccp.platform.audit.AuditService;
+import tz.go.tirdo.iccp.platform.config.IccpProperties;
+import tz.go.tirdo.iccp.platform.files.FileScanService;
 import tz.go.tirdo.iccp.platform.files.FileStorage;
 import tz.go.tirdo.iccp.platform.files.FileStorageConfig;
 import tz.go.tirdo.iccp.platform.outbox.OutboxWriter;
@@ -45,9 +47,11 @@ public class AnnouncementService {
     private final OutboxWriter outbox;
     private final AuditService audit;
     private final FileStorage files;
+    private final FileScanService scans;
+    private final long maxUploadBytes;
 
     public AnnouncementService(JdbcClient jdbc, DirectoryApi directory, RoleDirectory roles, Notifier notifier, OutboxWriter outbox,
-                               AuditService audit, FileStorage files) {
+                               AuditService audit, FileStorage files, FileScanService scans, IccpProperties props) {
         this.jdbc = jdbc;
         this.directory = directory;
         this.roles = roles;
@@ -55,6 +59,8 @@ public class AnnouncementService {
         this.outbox = outbox;
         this.audit = audit;
         this.files = files;
+        this.scans = scans;
+        this.maxUploadBytes = props.files().maxUploadBytes();
     }
 
     record Ann(long id, UUID publicId, String category, String status, long authorStaffId, Long approverStaffId, boolean requiresAck,
@@ -133,6 +139,7 @@ public class AnnouncementService {
         if (a.authorStaffId() != me.staffId() || !Set.of("DRAFT", "RETURNED").contains(a.status())) {
             throw ApiException.conflict("ICCP-COM-011", "com.notSubmittable");
         }
+        ensureAttachmentsClean(a.id());
         if (ComTypes.EMERGENCY.equals(a.category())) {
             CurrentUser.require(Roles.EMERGENCY_APPROVER);
             publish(a);
@@ -310,21 +317,35 @@ public class AnnouncementService {
         if (contentType == null || !FileStorageConfig.ALLOWED_TYPES.contains(contentType)) {
             throw ApiException.badRequest("ICCP-FILE-002", "error.fileType");
         }
-        if (content.length == 0 || content.length > 20 * 1024 * 1024) {
+        if (content.length == 0 || content.length > maxUploadBytes) {
             throw ApiException.badRequest("ICCP-FILE-001", "error.fileTooLarge");
         }
         String safeName = fileName == null ? "attachment" : fileName.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_");
-        FileStorage.StoredFile f = files.put("com/" + publicId, safeName, contentType, content);
+        FileStorage.StoredFile f = files.put("quarantine/com/" + publicId, safeName, contentType, content);
         jdbc.sql("""
                 INSERT INTO com.announcement_attachment (announcement_id, object_key, file_name, content_type, size_bytes, sha256)
                 VALUES (:a, :k, :n, :t, :s, :h)
                 """).param("a", a.id()).param("k", f.objectKey()).param("n", f.fileName()).param("t", f.contentType())
                 .param("s", f.sizeBytes()).param("h", f.sha256()).update();
-        audit.record("COM", "ATTACHMENT_ADD", "announcement", publicId, Map.of("file", safeName));
+        scans.enqueue(f.objectKey());
+        audit.record("COM", "ATTACHMENT_QUARANTINED", "announcement", publicId, Map.of("file", safeName));
         return f;
     }
 
     // ---------------------------------------------------------------- notifications (called from the outbox handler)
+
+    private void ensureAttachmentsClean(long announcementId) {
+        String status = jdbc.sql("""
+                SELECT fs.status FROM com.announcement_attachment a
+                  LEFT JOIN integ.file_scan fs ON fs.object_key = a.object_key
+                 WHERE a.announcement_id = :a AND coalesce(fs.status, 'CLEAN') <> 'CLEAN'
+                 ORDER BY a.id LIMIT 1
+                """).param("a", announcementId).query(String.class).optional().orElse(null);
+        if (status != null) {
+            throw ApiException.conflict("ICCP-FILE-003",
+                    "INFECTED".equals(status) ? "error.fileInfected" : "error.fileScanning");
+        }
+    }
 
     /** Fans out notifications for a newly published or amended notice, in each recipient's language. */
     @Transactional

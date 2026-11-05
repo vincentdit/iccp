@@ -49,7 +49,13 @@ public record IccpProperties(
                         @DefaultValue("") String minioAccessKey,
                         @DefaultValue("") String minioSecretKey,
                         @DefaultValue("iccp") String minioBucket,
-                        @DefaultValue("20971520") long maxUploadBytes) {
+                        @DefaultValue("20971520") long maxUploadBytes,
+                        @DefaultValue("disabled") String scanProvider,
+                        @DefaultValue("clamav") String clamavHost,
+                        @DefaultValue("3310") int clamavPort,
+                        @DefaultValue("3000") int scanConnectTimeoutMs,
+                        @DefaultValue("30000") int scanReadTimeoutMs,
+                        @DefaultValue("3") int scanMaxAttempts) {
     }
 
     /**
@@ -60,6 +66,13 @@ public record IccpProperties(
     public record Notifications(@DefaultValue("ICCP <no-reply@tirdo.go.tz>") String emailFrom,
                                 @DefaultValue("false") boolean emailEnabled,
                                 @DefaultValue("log") String smsProvider,
+                                @DefaultValue("") String smsUrl,
+                                @DefaultValue("") String smsApiKey,
+                                @DefaultValue("TIRDO") String smsSenderId,
+                                @DefaultValue("5000") long smsConnectTimeoutMs,
+                                @DefaultValue("10000") long smsReadTimeoutMs,
+                                @DefaultValue("20") int smsBatchSize,
+                                @DefaultValue("") String smsReceiptSecret,
                                 @DefaultValue("Africa/Dar_es_Salaam") String timeZone) {
     }
 

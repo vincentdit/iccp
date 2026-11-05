@@ -44,6 +44,7 @@ public class SecurityConfig {
                     .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
             .authorizeHttpRequests(a -> a
                     .requestMatchers("/api/v1/public/**", "/api/v1/dev/**", "/api/v1/integrations/mms/directory",
+                            "/api/v1/integrations/sms/delivery-receipt",
                             "/actuator/health/**", "/actuator/info").permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .anyRequest().authenticated())

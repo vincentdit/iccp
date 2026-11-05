@@ -49,7 +49,7 @@ public final class ComTypes {
                            OffsetDateTime acknowledgedAt, int attachmentCount, int currentVersion) {
     }
 
-    public record Attachment(long id, String fileName, String contentType, long sizeBytes) {
+    public record Attachment(long id, String fileName, String contentType, long sizeBytes, String scanStatus) {
     }
 
     public record VersionInfo(int versionNo, String titleEn, String titleSw, String changeNote, String createdBy, OffsetDateTime createdAt) {
