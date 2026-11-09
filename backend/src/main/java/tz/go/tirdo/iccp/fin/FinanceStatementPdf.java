@@ -64,15 +64,19 @@ public final class FinanceStatementPdf {
         }
 
         void heading() throws IOException {
+            centeredLine("TANZANIA INDUSTRIAL RESEARCH AND DEVELOPMENT ORGANIZATION", 11, BOLD);
+            centeredLine("ICCP PERSONAL FINANCIAL STATEMENT", 18, BOLD);
+            gap(8);
             try (InputStream logo = FinanceStatementPdf.class.getResourceAsStream("/assets/tirdo-logo.jpg")) {
                 if (logo == null) throw new IllegalStateException("TIRDO logo resource is missing.");
                 PDImageXObject image = PDImageXObject.createFromByteArray(document, logo.readAllBytes(), "tirdo-logo");
-                out.drawImage(image, 40, 730, 45, 59);
+                float logoWidth = 50;
+                float logoHeight = 66;
+                float logoX = (PDRectangle.A4.getWidth() - logoWidth) / 2;
+                float logoY = y - logoHeight;
+                out.drawImage(image, logoX, logoY, logoWidth, logoHeight);
+                y = logoY - 18;
             }
-            lineAt("TANZANIA INDUSTRIAL RESEARCH AND DEVELOPMENT ORGANIZATION", 100, 11, BOLD);
-            lineAt("ICCP PERSONAL FINANCIAL STATEMENT", 100, 18, BOLD);
-            y -= 38;
-            gap(8);
             line("Staff: " + statement.staffName() + " (" + statement.employeeNo() + ")", 10, REGULAR);
             line("Period: " + DATE.format(statement.from()) + " to " + DATE.format(statement.to()), 10, REGULAR);
             line("Generated: " + DATE_TIME.format(statement.generatedAt()), 10, REGULAR);
@@ -110,6 +114,11 @@ public final class FinanceStatementPdf {
         }
         void lineAt(String text, float x, float size, PDType1Font font) throws IOException {
             out.beginText(); out.setFont(font, size); out.newLineAtOffset(x, y); out.showText(ascii(text)); out.endText(); y -= size + 5;
+        }
+        void centeredLine(String text, float size, PDType1Font font) throws IOException {
+            String printable = ascii(text);
+            float width = font.getStringWidth(printable) / 1000 * size;
+            lineAt(printable, (PDRectangle.A4.getWidth() - width) / 2, size, font);
         }
         void footer() throws IOException {
             out.beginText(); out.setFont(REGULAR, 8); out.newLineAtOffset(40, 30);
