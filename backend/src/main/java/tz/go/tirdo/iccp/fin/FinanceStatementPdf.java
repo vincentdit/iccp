@@ -64,9 +64,6 @@ public final class FinanceStatementPdf {
         }
 
         void heading() throws IOException {
-            centeredLine("TANZANIA INDUSTRIAL RESEARCH AND DEVELOPMENT ORGANIZATION", 11, BOLD);
-            centeredLine("ICCP PERSONAL FINANCIAL STATEMENT", 18, BOLD);
-            gap(8);
             try (InputStream logo = FinanceStatementPdf.class.getResourceAsStream("/assets/tirdo-logo.jpg")) {
                 if (logo == null) throw new IllegalStateException("TIRDO logo resource is missing.");
                 PDImageXObject image = PDImageXObject.createFromByteArray(document, logo.readAllBytes(), "tirdo-logo");
@@ -77,6 +74,9 @@ public final class FinanceStatementPdf {
                 out.drawImage(image, logoX, logoY, logoWidth, logoHeight);
                 y = logoY - 18;
             }
+            centeredLine("TANZANIA INDUSTRIAL RESEARCH AND DEVELOPMENT ORGANIZATION", 11, BOLD);
+            centeredLine("ICCP PERSONAL FINANCIAL STATEMENT", 18, BOLD);
+            gap(8);
             line("Staff: " + statement.staffName() + " (" + statement.employeeNo() + ")", 10, REGULAR);
             line("Period: " + DATE.format(statement.from()) + " to " + DATE.format(statement.to()), 10, REGULAR);
             line("Generated: " + DATE_TIME.format(statement.generatedAt()), 10, REGULAR);
