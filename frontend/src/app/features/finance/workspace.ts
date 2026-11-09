@@ -88,6 +88,10 @@ export class Workspace {
     if (f) this.upload(f);
   }
 
+  protected downloadTemplate() {
+    this.api.download('/fin/imports/template', 'iccp-staff-diary-template.csv');
+  }
+
   private upload(file: File) {
     this.uploading.set(true);
     this.api.upload<ImportResult>('/fin/imports', file).subscribe({

@@ -77,6 +77,10 @@
 
     @case ('batches') {
       @if (session.can()?.financeImport) {
+        <section class="template-guide">
+          <div class="grow"><strong>{{ 'ws.import.templateTitle' | t }}</strong><p>{{ 'ws.import.templateHelp' | t }}</p></div>
+          <button class="btn btn-tinted" type="button" (click)="downloadTemplate()"><app-icon name="download" /> {{ 'ws.import.templateDownload' | t }}</button>
+        </section>
         <label class="drop" [class.over]="dragging()" (dragover)="$event.preventDefault(); dragging.set(true)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
           <input type="file" accept=".csv,text/csv" (change)="onFile(file)" #file class="visually-hidden" [disabled]="uploading()" />
           <span class="tile indigo"><app-icon [name]="uploading() ? 'clock' : 'fileUp'" /></span>

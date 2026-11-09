@@ -349,6 +349,12 @@ export const DICTIONARY: Record<string, Entry> = {
     sw: 'Weka faili la CSV hapa. Faili lile lile mara mbili hupuuzwa; faili lenye jumla zisizolingana hukataliwa.',
   },
   'ws.import.choose': { en: 'Choose file', sw: 'Chagua faili' },
+  'ws.import.templateTitle': { en: 'Start with the approved template', sw: 'Anza na kiolezo kilichoidhinishwa' },
+  'ws.import.templateHelp': {
+    en: 'Replace the example values, remove unused row types, and update the trailer with the number of C, P, A and J rows plus the claim, payment and allocation totals.',
+    sw: 'Badilisha thamani za mfano, ondoa aina za mistari zisizotumika, kisha sasisha mstari wa mwisho kwa idadi ya mistari ya C, P, A na J pamoja na jumla za madai, malipo na migawanyo.',
+  },
+  'ws.import.templateDownload': { en: 'Download CSV template', sw: 'Pakua kiolezo cha CSV' },
   'ws.import.uploading': { en: 'Checking the file…', sw: 'Faili linakaguliwa…' },
   'ws.import.done': { en: 'Imported: {loaded} rows loaded, {q} held for checking', sw: 'Imeingizwa: mistari {loaded} imepakiwa, {q} imezuiliwa' },
   'ws.import.duplicate': { en: 'This file was already imported. Nothing changed.', sw: 'Faili hili liliingizwa tayari. Hakuna kilichobadilika.' },

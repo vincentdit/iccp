@@ -2,6 +2,9 @@ package tz.go.tirdo.iccp.fin.web;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import tz.go.tirdo.iccp.fin.FinTypes;
 import tz.go.tirdo.iccp.fin.FinanceBatchService;
+import tz.go.tirdo.iccp.fin.FinanceCsvTemplate;
 import tz.go.tirdo.iccp.fin.FinanceImportService;
 import tz.go.tirdo.iccp.fin.FinancialDiaryService;
 import tz.go.tirdo.iccp.platform.security.CurrentUser;
@@ -22,6 +26,7 @@ import tz.go.tirdo.iccp.platform.web.ApiException;
 import tz.go.tirdo.iccp.platform.web.PageResult;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -126,6 +131,16 @@ public class FinanceController {
             throw ApiException.badRequest("ICCP-FIN-021", "fin.emptyFile");
         }
         return imports.importFile(file.getOriginalFilename(), file.getBytes());
+    }
+
+    @GetMapping(value = "/imports/template", produces = "text/csv")
+    public ResponseEntity<byte[]> importTemplate() {
+        CurrentUser.require(Roles.FIN_OFFICER, Roles.FIN_REVIEWER);
+        byte[] csv = ("\uFEFF" + FinanceCsvTemplate.content()).getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=iccp-staff-diary-template.csv")
+                .body(csv);
     }
 
     @GetMapping("/batches")
