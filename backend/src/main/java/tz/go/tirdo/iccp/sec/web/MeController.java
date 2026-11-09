@@ -46,7 +46,7 @@ public class MeController {
         can.put("emergencyAlerts", p.hasRole(Roles.EMERGENCY_APPROVER));
         can.put("viewReach", p.hasAnyRole(Roles.COMMS_PUBLISHER, Roles.COMMS_APPROVER, Roles.DIRECTOR, Roles.EXECUTIVE));
         can.put("financeWorkspace", p.hasAnyRole(Roles.FIN_OFFICER, Roles.FIN_REVIEWER));
-        can.put("financeImport", p.hasRole(Roles.FIN_OFFICER));
+        can.put("financeImport", p.hasAnyRole(Roles.FIN_OFFICER, Roles.FIN_REVIEWER));
         can.put("financeReview", p.hasRole(Roles.FIN_REVIEWER));
         can.put("hrAdmin", p.hasRole(Roles.HR_OFFICER));
         can.put("securityAdmin", p.hasRole(Roles.SECURITY_ADMIN));

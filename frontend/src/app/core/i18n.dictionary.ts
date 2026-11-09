@@ -339,6 +339,11 @@ export const DICTIONARY: Record<string, Entry> = {
   'ws.age.8d+': { en: 'Over a week', sw: 'Zaidi ya wiki' },
   'ws.slaNote': { en: 'The service standard is a reply within 3 working days.', sw: 'Kiwango cha huduma ni kujibu ndani ya siku 3 za kazi.' },
   'ws.import.title': { en: 'Import a Finance export', sw: 'Ingiza faili la Fedha' },
+  'ws.import.staffDiary': { en: 'Upload staff diary', sw: 'Pakia shajara ya watumishi' },
+  'ws.import.overviewHelp': {
+    en: 'Upload the Finance CSV, check held rows, then send it to a different reviewer for publication.',
+    sw: 'Pakia CSV ya Fedha, kagua mistari iliyozuiliwa, kisha itume kwa mpitiaji mwingine ili ichapishwe.',
+  },
   'ws.import.help': {
     en: 'Drop the CSV here. The same file twice is ignored; a file whose totals do not match is rejected.',
     sw: 'Weka faili la CSV hapa. Faili lile lile mara mbili hupuuzwa; faili lenye jumla zisizolingana hukataliwa.',

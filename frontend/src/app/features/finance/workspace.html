@@ -1,9 +1,24 @@
 <div class="page">
-  <app-page-header [title]="'nav.financeWorkspace' | t" [subtitle]="'ws.subtitle' | t" />
+  <app-page-header [title]="'nav.financeWorkspace' | t" [subtitle]="'ws.subtitle' | t">
+    @if (session.can()?.financeImport) {
+      <label class="btn btn-filled upload-action" [class.disabled]="uploading()">
+        <input type="file" accept=".csv,text/csv" (change)="onFile(headerFile)" #headerFile class="visually-hidden" [disabled]="uploading()" />
+        <app-icon [name]="uploading() ? 'clock' : 'fileUp'" />
+        {{ (uploading() ? 'ws.import.uploading' : 'ws.import.staffDiary') | t }}
+      </label>
+    }
+  </app-page-header>
   <app-segmented [segments]="tabs()" [(value)]="tab" [label]="'ws.sections' | t" />
 
   @switch (tab()) {
     @case ('overview') {
+      @if (session.can()?.financeImport) {
+        <button class="upload-shortcut" type="button" (click)="tab.set('batches')">
+          <span class="tile indigo"><app-icon name="fileUp" /></span>
+          <span><strong>{{ 'ws.import.staffDiary' | t }}</strong><small>{{ 'ws.import.overviewHelp' | t }}</small></span>
+          <app-icon name="chevronRight" />
+        </button>
+      }
       @if (dash(); as d) {
         <div class="metrics">
           <div class="card metric lead">

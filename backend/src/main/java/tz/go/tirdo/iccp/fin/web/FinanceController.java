@@ -119,7 +119,9 @@ public class FinanceController {
     @PostMapping("/imports")
     @ResponseStatus(HttpStatus.CREATED)
     public FinTypes.ImportResult importFile(@RequestPart("file") MultipartFile file) throws IOException {
-        CurrentUser.require(Roles.FIN_OFFICER);
+        // Finance reviewers may also load a diary export. The batch service still enforces
+        // maker-checker: whoever uploads a batch cannot review or publish that same batch.
+        CurrentUser.require(Roles.FIN_OFFICER, Roles.FIN_REVIEWER);
         if (file.isEmpty()) {
             throw ApiException.badRequest("ICCP-FIN-021", "fin.emptyFile");
         }

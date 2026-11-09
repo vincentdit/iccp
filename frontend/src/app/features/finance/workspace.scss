@@ -2,6 +2,18 @@ app-segmented {
   display: block;
   margin-bottom: 20px;
 }
+.upload-action {
+  cursor: pointer;
+  &.disabled { opacity: .5; pointer-events: none; }
+}
+.upload-shortcut {
+  width: 100%; display: flex; align-items: center; gap: 13px; margin: 0 0 16px; padding: 14px 16px;
+  color: var(--label); text-align: left; border: 1px solid color-mix(in srgb, var(--tint) 32%, var(--separator));
+  border-radius: var(--r-lg); background: var(--tint-soft); cursor: pointer;
+  span:nth-child(2) { display: grid; gap: 2px; flex: 1; }
+  small { color: var(--label-2); }
+  > app-icon:last-child { color: var(--tint); }
+}
 .metrics {
   display: grid;
   grid-template-columns: 1.6fr repeat(3, 1fr);
