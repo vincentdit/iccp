@@ -10,14 +10,14 @@ import { PageHeader } from '../../ui/page-header';
 import { Segmented } from '../../ui/segmented';
 import { Status } from '../../ui/status';
 
-interface TaskRow { publicId:string; referenceNo:string; title:string; description?:string; priority:string; assigneeName:string; dueOn:string; status:string; progressPct:number; canAct:boolean; canRequestExtension:boolean; canDecideExtension:boolean; extensionPending:boolean; }
+interface TaskRow { publicId:string; referenceNo:string; title:string; description?:string; priority:string; assigneeName:string; dueOn:string; status:string; progressPct:number; nextStatus?:string; canRequestExtension:boolean; canDecideExtension:boolean; extensionPending:boolean; }
 interface Conversation { publicId:string; title:string; type:string; ownerName:string; updatedAt:string; memberCount:number; lastMessage:string; unreadCount:number; muted:boolean; }
 interface Message { id:number; senderName:string; body:string; createdAt:string; mine:boolean; }
 interface DocumentRow { publicId:string; title:string; typeName:string; classification:string; language:string; status:string; ownerUnit:string; reviewDueOn?:string; updatedAt:string; }
 interface DocumentType { code:string; nameEn:string; nameSw:string; }
 interface Workspace { publicId:string; code:string; title:string; type:string; leadName:string; unitName:string; startsOn:string; endsOn?:string; status:string; confidential:boolean; milestones:number; overdueMilestones:number; }
 interface RequestType { id:number; code:string; nameEn:string; category:string; slaHours:number; }
-interface RequestRow { publicId:string; referenceNo:string; typeName:string; category:string; status:string; summary:string; submittedAt:string; slaDueAt:string; requesterName:string; agentName?:string; }
+interface RequestRow { publicId:string; referenceNo:string; typeName:string; category:string; status:string; summary:string; submittedAt:string; slaDueAt:string; requesterName:string; agentName?:string; canResolve:boolean; }
 interface Offering { publicId:string; title:string; provider:string; mode:string; startsOn?:string; endsOn?:string; location?:string; deadline?:string; status:string; applicationStatus?:string; }
 interface Metric { code:string; label:string; value:number; unit:string; }
 interface Dashboard { asAt:string; metrics:Metric[]; }
@@ -63,6 +63,12 @@ export class WorkHub {
   protected trainingJustification='';
   protected extensionTask=signal<TaskRow|null>(null); protected extensionDue=''; protected extensionReason='';
   protected canWorkQueue=computed(()=>this.session.me()?.roles.some(r=>['SERVICE_AGENT','DIRECTOR','EXECUTIVE'].includes(r))??false);
+  protected canCreate=computed(()=>{
+    const roles=this.session.me()?.roles??[];
+    if(this.tab()==='tasks')return roles.some(r=>['LINE_MANAGER','DIRECTOR','EXECUTIVE','MEETING_SECRETARY','PROJECT_LEAD'].includes(r));
+    if(this.tab()==='projects')return roles.some(r=>['PROJECT_LEAD','DIRECTOR','EXECUTIVE'].includes(r));
+    return ['messages','documents','requests','feedback'].includes(this.tab());
+  });
 
   constructor(){
     this.api.get<Page<StaffSummary>>('/dir/staff',{size:100}).subscribe(p=>this.staff.set(p.items));
@@ -117,7 +123,6 @@ export class WorkHub {
     if(!this.trainingJustification.trim())return this.toasts.show('Add a justification first');
     this.api.post('/trn/offerings/'+o.publicId+'/apply',{justification:this.trainingJustification}).subscribe({next:()=>{this.trainingJustification='';this.load('training');this.toasts.show('Application submitted');},error:e=>this.toasts.error(e)});
   }
-  protected nextTask(t:TaskRow){return ({OPEN:'ACCEPTED',ACCEPTED:'IN_PROGRESS',IN_PROGRESS:'SUBMITTED',RETURNED:'SUBMITTED',SUBMITTED:'CLOSED'} as Record<string,string>)[t.status];}
   protected startExtension(t:TaskRow){this.extensionTask.set(t);this.extensionDue='';this.extensionReason='';}
   protected requestExtension(){
     const t=this.extensionTask();if(!t||!this.extensionDue||!this.extensionReason.trim())return;

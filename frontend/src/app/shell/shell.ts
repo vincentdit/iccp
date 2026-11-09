@@ -77,10 +77,8 @@ export class Shell {
 
   // Tab bar titles are shorter versions of the sidebar names so five fit on a phone.
   protected tabs = computed(() => {
-    const short = ['nav.home', 'tab.announcements', 'tab.diary', 'tab.directory'];
-    return this.primary()
-      .slice(0, 4)
-      .map((item, i) => ({ ...item, label: i === 3 ? (this.i18n.lang() === 'sw' ? 'Mikutano' : 'Meetings') : this.i18n.t(short[i]) }));
+    const short:Record<string,string>={'/':'nav.home','/announcements':'tab.announcements','/finance':'tab.diary','/directory':'tab.directory'};
+    return this.primary().slice(0,4).map(item=>({...item,label:short[item.path]?this.i18n.t(short[item.path]):item.label}));
   });
 
   constructor() {

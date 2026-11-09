@@ -29,7 +29,7 @@ public class TaskController {
     public record TaskRow(UUID publicId, String referenceNo, String title, String description, String source,
                           String priority, String issuerName, String assigneeName, String verifierName,
                           LocalDate dueOn, String status, int progressPct, boolean evidenceRequired,
-                          OffsetDateTime createdAt, boolean canAct, boolean canRequestExtension,
+                          OffsetDateTime createdAt, String nextStatus, boolean canRequestExtension,
                           boolean canDecideExtension, boolean extensionPending) {}
     public record CreateTask(String title, String description, String source, String priority,
                              UUID assigneeStaffPublicId, UUID verifierStaffPublicId, LocalDate dueOn,
@@ -54,7 +54,12 @@ public class TaskController {
                        concat_ws(' ',nullif(a.title,''),a.first_name,a.last_name) assignee_name,
                        concat_ws(' ',nullif(v.title,''),v.first_name,v.last_name) verifier_name,
                        t.due_on,t.status,t.progress_pct,t.evidence_required,t.created_at,
-                       (t.assignee_staff_id=:me OR t.verifier_staff_id=:me OR t.issuer_staff_id=:me) can_act,
+                       CASE
+                         WHEN t.assignee_staff_id=:me AND t.status='OPEN' THEN 'ACCEPTED'
+                         WHEN t.assignee_staff_id=:me AND t.status='ACCEPTED' THEN 'IN_PROGRESS'
+                         WHEN t.assignee_staff_id=:me AND t.status IN ('IN_PROGRESS','RETURNED') THEN 'SUBMITTED'
+                         WHEN (t.verifier_staff_id=:me OR t.issuer_staff_id=:me) AND t.status='SUBMITTED' THEN 'CLOSED'
+                       END next_status,
                        (t.assignee_staff_id=:me AND t.status NOT IN ('CLOSED','CANCELLED')) can_request_extension,
                        ((t.verifier_staff_id=:me OR t.issuer_staff_id=:me) AND EXISTS(SELECT 1 FROM tsk.extension_request e WHERE e.task_id=t.id AND e.decision='PENDING')) can_decide_extension,
                        EXISTS(SELECT 1 FROM tsk.extension_request e WHERE e.task_id=t.id AND e.decision='PENDING') extension_pending

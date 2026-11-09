@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header [title]="greeting()" [subtitle]="today()" />
 
-  @if (toAcknowledge().length) {
+  @if (session.feature('MODULE_ANNOUNCEMENTS') && toAcknowledge().length) {
     <a class="ack-banner" [routerLink]="['/announcements', toAcknowledge()[0].publicId]">
       <span class="tile orange"><app-icon name="checklist" /></span>
       <span class="grow">
@@ -28,7 +28,7 @@
   }
 
   <div class="columns">
-    <section class="section diary-card">
+    @if(session.feature('MODULE_FINANCE')){<section class="section diary-card">
       <div class="section-header">
         <h2>{{ 'nav.diary' | t }}</h2>
         <a routerLink="/finance" class="t-subhead">{{ 'common.seeAll' | t }}</a>
@@ -54,9 +54,9 @@
       @if (finance(); as f) {
         <p class="group-foot">{{ 'diary.asAt' | t: { date: i18n.dateTime(f.asAt) } }}</p>
       }
-    </section>
+    </section>}
 
-    <section class="section">
+    @if(session.feature('MODULE_ANNOUNCEMENTS')){<section class="section">
       <div class="section-header">
         <h2>{{ 'nav.announcements' | t }}</h2>
         <a routerLink="/announcements" class="t-subhead">{{ 'common.seeAll' | t }}</a>
@@ -83,10 +83,10 @@
           }
         }
       </div>
-    </section>
+    </section>}
   </div>
 
-  <section class="section">
+  @if(session.feature('MODULE_NOTIFICATIONS')){<section class="section">
     <div class="section-header">
       <h2>{{ 'nav.notifications' | t }}</h2>
       <a routerLink="/notifications" class="t-subhead">{{ 'common.seeAll' | t }}</a>
@@ -102,5 +102,5 @@
         <div class="list-empty">{{ (inbox() === null ? 'common.loading' : 'inbox.empty') | t }}</div>
       }
     </div>
-  </section>
+  </section>}
 </div>

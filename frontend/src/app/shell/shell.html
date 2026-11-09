@@ -45,7 +45,7 @@
   <div class="spacer"></div>
 
   <div class="me">
-    <a class="me-link" routerLink="/directory/me">
+    <a class="me-link" [routerLink]="session.feature('MODULE_DIRECTORY') ? '/directory/me' : '/settings'">
       <app-avatar [name]="session.me()?.displayName ?? ''" [size]="34" />
       <span class="grow">
         <span class="name">{{ session.me()?.displayName }}</span>

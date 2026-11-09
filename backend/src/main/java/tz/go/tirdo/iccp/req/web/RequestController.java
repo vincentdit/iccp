@@ -21,7 +21,7 @@ public class RequestController {
     private final JdbcClient jdbc; private final ObjectMapper mapper; private final AuditService audit;
     public RequestController(JdbcClient jdbc,ObjectMapper mapper,AuditService audit){this.jdbc=jdbc;this.mapper=mapper;this.audit=audit;}
     public record Type(long id,String code,String nameEn,String nameSw,String category,int slaHours,String formSchema){}
-    public record RequestRow(UUID publicId,String referenceNo,String typeName,String category,String status,String summary,OffsetDateTime submittedAt,OffsetDateTime updatedAt,OffsetDateTime slaDueAt,String requesterName,String agentName){}
+    public record RequestRow(UUID publicId,String referenceNo,String typeName,String category,String status,String summary,OffsetDateTime submittedAt,OffsetDateTime updatedAt,OffsetDateTime slaDueAt,String requesterName,String agentName,boolean canResolve){}
     public record Submit(long requestTypeId,Map<String,Object> formData){}
     public record Action(String status,UUID agentStaffPublicId,String note,Integer satisfaction){}
 
@@ -38,7 +38,8 @@ public class RequestController {
                r.submitted_at,coalesce(r.updated_at,r.created_at) updated_at,
                r.submitted_at + make_interval(hours=>t.sla_hours) sla_due_at,
                concat_ws(' ',nullif(requester.title,''),requester.first_name,requester.last_name) requester_name,
-               concat_ws(' ',nullif(agent.title,''),agent.first_name,agent.last_name) agent_name
+               concat_ws(' ',nullif(agent.title,''),agent.first_name,agent.last_name) agent_name,
+               false can_resolve
           FROM req.service_request r JOIN req.request_type t ON t.id=r.request_type_id JOIN req.request_category c ON c.id=t.category_id
           JOIN dir.staff_member requester ON requester.id=r.requester_staff_id LEFT JOIN dir.staff_member agent ON agent.id=r.assigned_agent_staff_id
          WHERE r.requester_staff_id=:me ORDER BY coalesce(r.updated_at,r.created_at) DESC
@@ -54,12 +55,14 @@ public class RequestController {
                  r.submitted_at,coalesce(r.updated_at,r.created_at) updated_at,
                  r.submitted_at+make_interval(hours=>t.sla_hours) sla_due_at,
                  concat_ws(' ',nullif(s.title,''),s.first_name,s.last_name) requester_name,
-                 concat_ws(' ',nullif(a.title,''),a.first_name,a.last_name) agent_name
+                 concat_ws(' ',nullif(a.title,''),a.first_name,a.last_name) agent_name,
+                 (r.status='IN_FULFILMENT' AND (r.assigned_agent_staff_id=:me OR :manager)) can_resolve
             FROM req.service_request r JOIN req.request_type t ON t.id=r.request_type_id JOIN req.request_category c ON c.id=t.category_id
             JOIN dir.staff_member s ON s.id=r.requester_staff_id LEFT JOIN dir.staff_member a ON a.id=r.assigned_agent_staff_id
            WHERE r.status NOT IN ('DRAFT','CLOSED','CANCELLED') AND (t.fulfilment_unit_id IS NULL OR t.fulfilment_unit_id=:unit OR r.assigned_agent_staff_id=:me)
            ORDER BY CASE WHEN r.submitted_at+make_interval(hours=>t.sla_hours)<now() THEN 0 ELSE 1 END,r.submitted_at
-        """).param("unit",me.orgUnitId()).param("me",me.staffId()).query(RequestRow.class).list();
+        """).param("unit",me.orgUnitId()).param("me",me.staffId())
+                .param("manager",me.hasAnyRole("DIRECTOR","EXECUTIVE")).query(RequestRow.class).list();
     }
 
     @PostMapping("/requests")

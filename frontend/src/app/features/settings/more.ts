@@ -14,7 +14,7 @@ import { PageHeader } from '../../ui/page-header';
     <div class="page page-narrow">
       <app-page-header [title]="'nav.more' | t" />
       <div class="list">
-        <a class="list-row me" routerLink="/directory/me" style="--sep-inset: 74px">
+        <a class="list-row me" [routerLink]="session.feature('MODULE_DIRECTORY') ? '/directory/me' : '/settings'" style="--sep-inset: 74px">
           <app-avatar [name]="session.me()?.displayName ?? ''" [size]="46" />
           <span class="grow"><span class="title t-headline">{{ session.me()?.displayName }}</span><span class="sub">{{ session.me()?.positionTitle }}</span></span>
           <app-icon class="chev" name="chevronRight" />
