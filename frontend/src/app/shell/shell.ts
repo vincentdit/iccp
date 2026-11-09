@@ -47,12 +47,12 @@ export class Shell {
     this.i18n.lang();
     return [
       { path: '/', icon: 'home', label: this.i18n.t('nav.home'), tile: 'blue', exact: true },
-      { path: '/announcements', icon: 'megaphone', label: this.i18n.t('nav.announcements'), tile: 'orange' },
-      { path: '/finance', icon: 'wallet', label: this.i18n.t('nav.diary'), tile: 'green', exact: true },
-      ...(this.auth.config()?.mmsEnabled ? [{ path: this.mmsMeetingsUrl(), icon: 'calendar', label: this.i18n.lang() === 'sw' ? 'Mikutano' : 'Meetings', tile: 'indigo', external: true }] : []),
-      { path: '/directory', icon: 'users', label: this.i18n.t('nav.directory'), tile: 'teal' },
-      { path: '/notifications', icon: 'bell', label: this.i18n.t('nav.notifications'), tile: 'red', badge: () => this.session.unread() },
-    ];
+      ...(this.session.feature('MODULE_ANNOUNCEMENTS')?[{ path: '/announcements', icon: 'megaphone', label: this.i18n.t('nav.announcements'), tile: 'orange' }]:[]),
+      ...(this.session.feature('MODULE_FINANCE')?[{ path: '/finance', icon: 'wallet', label: this.i18n.t('nav.diary'), tile: 'green', exact: true }]:[]),
+      ...(this.session.feature('MODULE_MEETINGS')&&this.auth.config()?.mmsEnabled ? [{ path: this.mmsMeetingsUrl(), icon: 'calendar', label: this.i18n.lang() === 'sw' ? 'Mikutano' : 'Meetings', tile: 'indigo', external: true }] : []),
+      ...(this.session.feature('MODULE_DIRECTORY')?[{ path: '/directory', icon: 'users', label: this.i18n.t('nav.directory'), tile: 'teal' }]:[]),
+      ...(this.session.feature('MODULE_NOTIFICATIONS')?[{ path: '/notifications', icon: 'bell', label: this.i18n.t('nav.notifications'), tile: 'red', badge: () => this.session.unread() }]:[]),
+    ] as NavItem[];
   });
 
   protected mmsMeetingsUrl = computed(() => (this.auth.config()?.mmsUrl ?? 'http://localhost:4200').replace(/\/$/, '') + '/meetings');
@@ -60,17 +60,18 @@ export class Shell {
   protected work = computed<NavItem[]>(() => {
     this.i18n.lang();
     const can = this.session.can();
-    const items: NavItem[] = [{ path: '/work', icon: 'briefcase', label: this.i18n.t('nav.workHub'), tile: 'indigo' }];
-    if (can?.publishAnnouncements || can?.approveAnnouncements) {
+    const items: NavItem[] = this.session.feature('MODULE_WORK_HUB')?[{ path: '/work', icon: 'briefcase', label: this.i18n.t('nav.workHub'), tile: 'indigo' }]:[];
+    if (this.session.feature('MODULE_ANNOUNCEMENTS')&&(can?.publishAnnouncements || can?.approveAnnouncements)) {
       items.push({ path: '/announcements/manage', icon: 'send', label: this.i18n.t('nav.manageNotices'), tile: 'orange' });
     }
-    if (can?.financeWorkspace) {
+    if (this.session.feature('MODULE_FINANCE')&&can?.financeWorkspace) {
       items.push({ path: '/finance/workspace', icon: 'landmark', label: this.i18n.t('nav.financeWorkspace'), tile: 'indigo' });
     }
-    if (can?.hrAdmin) items.push({ path: '/admin/hr', icon: 'building', label: this.i18n.t('nav.hr'), tile: 'teal' });
+    if (this.session.feature('MODULE_HR_ADMIN')&&can?.hrAdmin) items.push({ path: '/admin/hr', icon: 'building', label: this.i18n.t('nav.hr'), tile: 'teal' });
     if (can?.securityAdmin || can?.auditSearch) {
       items.push({ path: '/admin/security', icon: 'shield', label: this.i18n.t('nav.security'), tile: 'gray' });
     }
+    if(can?.systemAdmin)items.push({path:'/admin/system-settings',icon:'settings',label:'System settings',tile:'gray'});
     return items;
   });
 

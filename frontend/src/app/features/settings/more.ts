@@ -21,17 +21,26 @@ import { PageHeader } from '../../ui/page-header';
         </a>
       </div>
       <div class="section list">
+        @if (session.feature('MODULE_NOTIFICATIONS')) {
         <a class="list-row" routerLink="/notifications" style="--sep-inset: 58px">
           <span class="tile red"><app-icon name="bell" /></span><span class="grow">{{ 'nav.notifications' | t }}</span>
           @if (session.unread()) {<span class="count-badge">{{ session.unread() }}</span>}
           <app-icon class="chev" name="chevronRight" />
         </a>
+        }
+        @if (session.feature('MODULE_DIRECTORY')) {
         <a class="list-row" routerLink="/directory/organisation" style="--sep-inset: 58px">
           <span class="tile teal"><app-icon name="network" /></span><span class="grow">{{ 'dir.organisation' | t }}</span><app-icon class="chev" name="chevronRight" />
         </a>
+        }
         <a class="list-row" routerLink="/settings" style="--sep-inset: 58px">
           <span class="tile gray"><app-icon name="settings" /></span><span class="grow">{{ 'nav.settings' | t }}</span><app-icon class="chev" name="chevronRight" />
         </a>
+        @if (session.can()?.systemAdmin) {
+        <a class="list-row" routerLink="/admin/system-settings" style="--sep-inset: 58px">
+          <span class="tile gray"><app-icon name="settings" /></span><span class="grow">System settings</span><app-icon class="chev" name="chevronRight" />
+        </a>
+        }
       </div>
       @if (work().length) {
         <div class="section">
@@ -55,9 +64,9 @@ export class More {
   protected work = computed(() => {
     const can = this.session.can();
     const l: { path: string; icon: string; tile: string; label: string }[] = [];
-    if (can?.publishAnnouncements || can?.approveAnnouncements) l.push({ path: '/announcements/manage', icon: 'send', tile: 'orange', label: 'nav.manageNotices' });
-    if (can?.financeWorkspace) l.push({ path: '/finance/workspace', icon: 'landmark', tile: 'indigo', label: 'nav.financeWorkspace' });
-    if (can?.hrAdmin) l.push({ path: '/admin/hr', icon: 'building', tile: 'teal', label: 'nav.hr' });
+    if (this.session.feature('MODULE_ANNOUNCEMENTS')&&(can?.publishAnnouncements || can?.approveAnnouncements)) l.push({ path: '/announcements/manage', icon: 'send', tile: 'orange', label: 'nav.manageNotices' });
+    if (this.session.feature('MODULE_FINANCE')&&can?.financeWorkspace) l.push({ path: '/finance/workspace', icon: 'landmark', tile: 'indigo', label: 'nav.financeWorkspace' });
+    if (this.session.feature('MODULE_HR_ADMIN')&&can?.hrAdmin) l.push({ path: '/admin/hr', icon: 'building', tile: 'teal', label: 'nav.hr' });
     if (can?.securityAdmin || can?.auditSearch) l.push({ path: '/admin/security', icon: 'shield', tile: 'gray', label: 'nav.security' });
     return l;
   });

@@ -37,3 +37,7 @@ export function canGuard(...anyOf: (keyof Me['can'])[]): CanActivateFn {
     return can && anyOf.some((k) => can[k]) ? true : router.createUrlTree(['/']);
   };
 }
+
+export function featureGuard(code: string): CanActivateFn {
+  return () => inject(Session).feature(code) ? true : inject(Router).createUrlTree(['/']);
+}

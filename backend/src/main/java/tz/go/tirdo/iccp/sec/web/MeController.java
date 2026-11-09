@@ -50,6 +50,7 @@ public class MeController {
         can.put("financeReview", p.hasRole(Roles.FIN_REVIEWER));
         can.put("hrAdmin", p.hasRole(Roles.HR_OFFICER));
         can.put("securityAdmin", p.hasRole(Roles.SECURITY_ADMIN));
+        can.put("systemAdmin", p.hasRole(Roles.SYS_ADMIN));
         can.put("auditSearch", p.hasAnyRole(Roles.SECURITY_ADMIN, Roles.AUDITOR));
         can.put("manageMeetings", p.hasAnyRole(Roles.MEETING_SECRETARY, Roles.MEETING_CHAIR, Roles.DIRECTOR, Roles.EXECUTIVE));
         return new Me(p.staffPublicId(), p.employeeNo(), s.displayName(), s.email(), s.positionTitle(), s.orgUnitCode(),

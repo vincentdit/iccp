@@ -47,10 +47,15 @@ export interface Me {
     financeReview: boolean;
     hrAdmin: boolean;
     securityAdmin: boolean;
+    systemAdmin: boolean;
     auditSearch: boolean;
     manageMeetings: boolean;
   };
 }
+
+export interface SystemFeature { code: string; enabled: boolean; }
+export interface SystemSetting { code: string; category: string; name: string; description: string; value: boolean|number|string; defaultValue: boolean|number|string; valueType: 'BOOLEAN'|'INTEGER'|'TEXT'; public: boolean; }
+export interface SystemSettingsSnapshot { features: SystemFeature[]; settings: SystemSetting[]; }
 
 // ---------------------------------------------------------------- meetings
 export interface MeetingType { code: string; nameEn: string; nameSw: string; confidentiality: string; quorumPercent: number; }

@@ -154,6 +154,8 @@ environment variables in other environments:
 | `ICCP_FILE_STORE`, `ICCP_MINIO_*` | Attachment storage (`local` or `minio`) |
 | `ICCP_EMAIL_ENABLED`, `ICCP_SMTP_HOST` | Outgoing email (off by default: messages are logged) |
 
+System administrators can also manage runtime configuration from **My work → System settings**. Module switches control both menu visibility and API access for Announcements, Financial Diary, Directory, Notifications, Work Hub, Meetings and HR administration. The same screen manages maintenance mode, file-upload availability, list-size limits, branding and support details. Every change is written to the hash-chained audit trail; core sign-in and system-settings access cannot be disabled.
+
 ## What R1 covers
 
 * **Announcements:** bilingual notices, events, circulars and directives; approval for circulars and directives;

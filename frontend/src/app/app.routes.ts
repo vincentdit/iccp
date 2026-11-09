@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { canGuard, meetingsSystemGuard, signedInGuard } from './core/guards';
+import { canGuard, featureGuard, meetingsSystemGuard, signedInGuard } from './core/guards';
 import { Shell } from './shell/shell';
 
 export const routes: Routes = [
@@ -12,7 +12,7 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./features/home/home').then((m) => m.Home), title: 'Home – ICCP' },
       {
-        path: 'announcements',
+        path: 'announcements', canActivate: [featureGuard('MODULE_ANNOUNCEMENTS')],
         children: [
           { path: '', loadComponent: () => import('./features/announcements/feed').then((m) => m.Feed), title: 'Announcements – ICCP' },
           {
@@ -41,7 +41,7 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'finance',
+        path: 'finance', canActivate: [featureGuard('MODULE_FINANCE')],
         children: [
           { path: '', loadComponent: () => import('./features/finance/diary').then((m) => m.Diary), title: 'Financial Diary – ICCP' },
           { path: 'claims/:id', loadComponent: () => import('./features/finance/claim').then((m) => m.ClaimPage) },
@@ -65,7 +65,7 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'directory',
+        path: 'directory', canActivate: [featureGuard('MODULE_DIRECTORY')],
         children: [
           { path: '', loadComponent: () => import('./features/directory/directory').then((m) => m.Directory), title: 'Directory – ICCP' },
           { path: 'organisation', loadComponent: () => import('./features/directory/org-chart').then((m) => m.OrgChart), title: 'Organisation – ICCP' },
@@ -73,10 +73,10 @@ export const routes: Routes = [
           { path: ':id', loadComponent: () => import('./features/directory/profile').then((m) => m.Profile) },
         ],
       },
-      { path: 'notifications', loadComponent: () => import('./features/notifications/inbox').then((m) => m.InboxPage), title: 'Notifications – ICCP' },
-      { path: 'work', loadComponent: () => import('./features/work/work-hub').then((m) => m.WorkHub), title: 'Work hub - ICCP' },
+      { path: 'notifications', canActivate:[featureGuard('MODULE_NOTIFICATIONS')], loadComponent: () => import('./features/notifications/inbox').then((m) => m.InboxPage), title: 'Notifications – ICCP' },
+      { path: 'work', canActivate:[featureGuard('MODULE_WORK_HUB')], loadComponent: () => import('./features/work/work-hub').then((m) => m.WorkHub), title: 'Work hub - ICCP' },
       {
-        path: 'meetings', canActivate: [meetingsSystemGuard], children: [
+        path: 'meetings', canActivate: [featureGuard('MODULE_MEETINGS'),meetingsSystemGuard], children: [
           { path: '', loadComponent: () => import('./features/meetings/meetings').then((m) => m.MeetingsPage), title: 'Meetings – ICCP' },
           { path: 'new', canActivate: [canGuard('manageMeetings')], loadComponent: () => import('./features/meetings/schedule').then((m) => m.ScheduleMeeting), title: 'Schedule meeting – ICCP' },
           { path: ':id/minutes', loadComponent: () => import('./features/meetings/minutes').then((m) => m.MinutesPage), title: 'Meeting minutes – ICCP' },
@@ -85,10 +85,11 @@ export const routes: Routes = [
       },
       {
         path: 'admin/hr',
-        canActivate: [canGuard('hrAdmin')],
+        canActivate: [featureGuard('MODULE_HR_ADMIN'),canGuard('hrAdmin')],
         loadComponent: () => import('./features/admin/hr').then((m) => m.HrAdmin),
         title: 'HR records – ICCP',
       },
+      {path:'admin/system-settings',canActivate:[canGuard('systemAdmin')],loadComponent:()=>import('./features/admin/system-settings').then(m=>m.SystemSettingsPage),title:'System settings – ICCP'},
       {
         path: 'admin/security',
         canActivate: [canGuard('securityAdmin', 'auditSearch')],
