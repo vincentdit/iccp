@@ -136,10 +136,12 @@ public class FinanceController {
     @GetMapping(value = "/imports/template", produces = "text/csv")
     public ResponseEntity<byte[]> importTemplate() {
         CurrentUser.require(Roles.FIN_OFFICER, Roles.FIN_REVIEWER);
-        byte[] csv = ("\uFEFF" + FinanceCsvTemplate.content()).getBytes(StandardCharsets.UTF_8);
+        FinanceCsvTemplate.Generated template = FinanceCsvTemplate.generate();
+        byte[] csv = ("\uFEFF" + template.content()).getBytes(StandardCharsets.UTF_8);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=iccp-staff-diary-template.csv")
+                .header("X-Template-Signature", template.signature())
                 .body(csv);
     }
 
