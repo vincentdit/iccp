@@ -34,6 +34,10 @@ public class TaskController {
                              UUID assigneeStaffPublicId, UUID verifierStaffPublicId, LocalDate dueOn,
                              boolean evidenceRequired) {}
     public record Transition(String status, Integer progressPct, String comment) {}
+    public record ExtensionRequest(long id, LocalDate requestedDueOn, String justification, String decision,
+                                   OffsetDateTime decidedAt) {}
+    public record RequestExtension(LocalDate requestedDueOn, String justification) {}
+    public record DecideExtension(String decision, String comment) {}
 
     @GetMapping("/tasks")
     public List<TaskRow> tasks(@RequestParam(defaultValue = "mine") String view) {
@@ -98,12 +102,68 @@ public class TaskController {
                 || (issuer||verifier) && from.equals("SUBMITTED") && List.of("CLOSED","RETURNED").contains(to)
                 || issuer && !List.of("CLOSED","CANCELLED").contains(from) && to.equals("CANCELLED");
         if (!valid) throw ApiException.conflict("ICCP-TSK-003","That task transition is not allowed.");
+        if (to.equals("CLOSED") && (Boolean) row[5]) {
+            boolean evidence = jdbc.sql("SELECT EXISTS(SELECT 1 FROM tsk.task_attachment WHERE task_id=:id AND is_evidence)")
+                    .param("id", taskId).query(Boolean.class).single();
+            if (!evidence) throw ApiException.conflict("ICCP-TSK-006", "Completion evidence is required before this task can be closed.");
+        }
         int progress = to.equals("CLOSED") ? 100 : in.progressPct()==null ? (Integer)jdbc.sql("SELECT progress_pct FROM tsk.task WHERE id=:id").param("id",taskId).query(Integer.class).single() : in.progressPct();
+        if (progress < 0 || progress > 100) throw ApiException.badRequest("ICCP-TSK-007", "Progress must be between 0 and 100.");
         jdbc.sql("UPDATE tsk.task SET status=:to,progress_pct=:progress,acknowledged_at=CASE WHEN :to='ACCEPTED' THEN now() ELSE acknowledged_at END,closed_at=CASE WHEN :to='CLOSED' THEN now() ELSE NULL END WHERE id=:id")
                 .param("to",to).param("progress",progress).param("id",taskId).update();
         jdbc.sql("INSERT INTO tsk.task_event(task_id,event_type,from_status,to_status,comment,actor_staff_id) VALUES(:id,'STATUS_CHANGED',:from,:to,:comment,:actor)")
                 .param("id",taskId).param("from",from).param("to",to).param("comment",in.comment()).param("actor",me.staffId()).update();
         audit.record("TSK","TASK_TRANSITION","task",id,Map.of("from",from,"to",to));
+    }
+
+    @GetMapping("/tasks/{id}/extensions")
+    public List<ExtensionRequest> extensions(@PathVariable UUID id) {
+        long task = visibleTask(id);
+        return jdbc.sql("SELECT id,requested_due_on,justification,decision,decided_at FROM tsk.extension_request WHERE task_id=:task ORDER BY created_at DESC")
+                .param("task", task).query(ExtensionRequest.class).list();
+    }
+
+    @PostMapping("/tasks/{id}/extensions")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public long requestExtension(@PathVariable UUID id, @RequestBody RequestExtension in) {
+        IccpPrincipal me = CurrentUser.get();
+        Object[] row = jdbc.sql("SELECT id,due_on FROM tsk.task WHERE public_id=:id AND assignee_staff_id=:me AND status NOT IN ('CLOSED','CANCELLED')")
+                .param("id", id).param("me", me.staffId()).query((rs,n)->new Object[]{rs.getLong(1),rs.getObject(2,LocalDate.class)})
+                .optional().orElseThrow(ApiException::notFound);
+        if (in.requestedDueOn()==null || !in.requestedDueOn().isAfter((LocalDate)row[1]) || in.justification()==null || in.justification().isBlank())
+            throw ApiException.badRequest("ICCP-TSK-008", "A later due date and justification are required.");
+        boolean pending=jdbc.sql("SELECT EXISTS(SELECT 1 FROM tsk.extension_request WHERE task_id=:task AND decision='PENDING')")
+                .param("task", row[0]).query(Boolean.class).single();
+        if(pending) throw ApiException.conflict("ICCP-TSK-009", "An extension request is already pending.");
+        long request=jdbc.sql("INSERT INTO tsk.extension_request(task_id,requested_due_on,justification) VALUES(:task,:due,:why) RETURNING id")
+                .param("task",row[0]).param("due",in.requestedDueOn()).param("why",in.justification().trim()).query(Long.class).single();
+        jdbc.sql("INSERT INTO tsk.task_event(task_id,event_type,comment,actor_staff_id) VALUES(:task,'COMMENT',:comment,:actor)")
+                .param("task",row[0]).param("comment","Deadline extension requested: "+in.justification().trim()).param("actor",me.staffId()).update();
+        audit.record("TSK","EXTENSION_REQUESTED","task",id,Map.of("requestedDueOn",in.requestedDueOn().toString()));
+        return request;
+    }
+
+    @PostMapping("/tasks/{id}/extensions/{requestId}/decision")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void decideExtension(@PathVariable UUID id,@PathVariable long requestId,@RequestBody DecideExtension in) {
+        IccpPrincipal me=CurrentUser.get();
+        String decision=allowed(in.decision(),List.of("APPROVED","REJECTED"),"");
+        Object[] row=jdbc.sql("SELECT t.id,e.requested_due_on FROM tsk.task t JOIN tsk.extension_request e ON e.task_id=t.id WHERE t.public_id=:id AND e.id=:request AND e.decision='PENDING' AND (t.issuer_staff_id=:me OR t.verifier_staff_id=:me)")
+                .param("id",id).param("request",requestId).param("me",me.staffId()).query((rs,n)->new Object[]{rs.getLong(1),rs.getObject(2,LocalDate.class)}).optional().orElseThrow(ApiException::notFound);
+        jdbc.sql("UPDATE tsk.extension_request SET decision=:decision,decided_by_staff_id=:me,decided_at=now() WHERE id=:request")
+                .param("decision",decision).param("me",me.staffId()).param("request",requestId).update();
+        if(decision.equals("APPROVED")) jdbc.sql("UPDATE tsk.task SET due_on=:due WHERE id=:task").param("due",row[1]).param("task",row[0]).update();
+        jdbc.sql("INSERT INTO tsk.task_event(task_id,event_type,comment,actor_staff_id) VALUES(:task,'COMMENT',:comment,:actor)")
+                .param("task",row[0]).param("comment","Extension "+decision.toLowerCase()+": "+(in.comment()==null?"":in.comment())).param("actor",me.staffId()).update();
+        audit.record("TSK","EXTENSION_"+decision,"task",id,Map.of("requestId",requestId));
+    }
+
+    private long visibleTask(UUID id) {
+        IccpPrincipal me=CurrentUser.get();
+        return jdbc.sql("SELECT id FROM tsk.task WHERE public_id=:id AND (assignee_staff_id=:me OR issuer_staff_id=:me OR verifier_staff_id=:me)")
+                .param("id",id).param("me",me.staffId()).query(Long.class).optional().orElseThrow(ApiException::notFound);
     }
 
     private long staffId(UUID id) {

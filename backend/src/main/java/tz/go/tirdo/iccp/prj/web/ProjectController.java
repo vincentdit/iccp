@@ -23,6 +23,9 @@ public class ProjectController {
     public record CreateWorkspace(String code,String title,String type,LocalDate startsOn,LocalDate endsOn,String fundingSource,boolean confidential){}
     public record Milestone(String title,LocalDate plannedOn){}
     public record State(String status){}
+    public record Member(UUID staffPublicId,String role){}
+    public record MilestoneState(String status,LocalDate actualOn){}
+    public record Progress(LocalDate periodStart,LocalDate periodEnd,String rag,String achievements,String issues,String nextSteps){}
 
     @GetMapping("/workspaces")
     public List<Workspace> list(){
@@ -75,6 +78,43 @@ public class ProjectController {
         long w=managed(id); String next=in.status()==null?"":in.status().toUpperCase();if(!List.of("ACTIVE","ON_HOLD","CLOSED").contains(next))throw ApiException.badRequest("ICCP-PRJ-004","Invalid status.");
         jdbc.sql("UPDATE prj.workspace SET status=:s,closed_at=CASE WHEN :s='CLOSED' THEN now() ELSE NULL END WHERE id=:id").param("s",next).param("id",w).update();
         audit.record("PRJ","WORKSPACE_STATUS_CHANGED","workspace",id,Map.of("status",next));
+    }
+
+    @PostMapping("/workspaces/{id}/members")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public void member(@PathVariable UUID id,@RequestBody Member in){
+        long w=managed(id);if(in.staffPublicId()==null)throw ApiException.badRequest("ICCP-PRJ-005","Choose a staff member.");
+        String role=in.role()==null?"MEMBER":in.role().toUpperCase();if(!List.of("MEMBER","VIEWER").contains(role))throw ApiException.badRequest("ICCP-PRJ-006","Invalid member role.");
+        long staff=jdbc.sql("SELECT id FROM dir.staff_member WHERE public_id=:id AND employment_status IN ('ACTIVE','ON_LEAVE')").param("id",in.staffPublicId()).query(Long.class).optional().orElseThrow(ApiException::notFound);
+        jdbc.sql("INSERT INTO prj.workspace_member(workspace_id,staff_id,member_role) VALUES(:w,:s,:role) ON CONFLICT (workspace_id,staff_id) WHERE removed_at IS NULL DO UPDATE SET member_role=:role")
+                .param("w",w).param("s",staff).param("role",role).update();
+        audit.record("PRJ","MEMBER_ADDED","workspace",id,Map.of("staffPublicId",in.staffPublicId().toString(),"role",role));
+    }
+
+    @PostMapping("/workspaces/{id}/milestones/{milestoneId}/status")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void milestoneStatus(@PathVariable UUID id,@PathVariable long milestoneId,@RequestBody MilestoneState in){
+        long w=managed(id);String next=in.status()==null?"":in.status().toUpperCase();if(!List.of("PLANNED","IN_PROGRESS","DONE","DELAYED","CANCELLED").contains(next))throw ApiException.badRequest("ICCP-PRJ-007","Invalid milestone status.");
+        LocalDate actual=next.equals("DONE")?(in.actualOn()==null?LocalDate.now():in.actualOn()):null;
+        int n=jdbc.sql("UPDATE prj.milestone SET status=:status,actual_on=:actual WHERE id=:id AND workspace_id=:w").param("status",next).param("actual",actual).param("id",milestoneId).param("w",w).update();
+        if(n==0)throw ApiException.notFound();
+        audit.record("PRJ","MILESTONE_STATUS_CHANGED","workspace",id,Map.of("milestoneId",milestoneId,"status",next));
+    }
+
+    @PostMapping("/workspaces/{id}/progress")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public long progress(@PathVariable UUID id,@RequestBody Progress in){
+        long w=managed(id);String rag=in.rag()==null?"":in.rag().toUpperCase();
+        if(in.periodStart()==null||in.periodEnd()==null||in.periodEnd().isBefore(in.periodStart())||in.achievements()==null||in.achievements().isBlank()||!List.of("RED","AMBER","GREEN").contains(rag))
+            throw ApiException.badRequest("ICCP-PRJ-008","Valid reporting dates, RAG status and achievements are required.");
+        boolean overlap=jdbc.sql("SELECT EXISTS(SELECT 1 FROM prj.progress_report WHERE workspace_id=:w AND period_start<=:end AND period_end>=:start)").param("w",w).param("start",in.periodStart()).param("end",in.periodEnd()).query(Boolean.class).single();
+        if(overlap)throw ApiException.conflict("ICCP-PRJ-009","A progress report already covers this period.");
+        long report=jdbc.sql("INSERT INTO prj.progress_report(workspace_id,period_start,period_end,rag,achievements,issues,next_steps) VALUES(:w,:start,:end,:rag,:achievements,:issues,:next) RETURNING id")
+                .param("w",w).param("start",in.periodStart()).param("end",in.periodEnd()).param("rag",rag).param("achievements",in.achievements().trim()).param("issues",in.issues()).param("next",in.nextSteps()).query(Long.class).single();
+        audit.record("PRJ","PROGRESS_REPORTED","workspace",id,Map.of("reportId",report,"rag",rag));return report;
     }
     private long managed(UUID id){return jdbc.sql("SELECT id FROM prj.workspace WHERE public_id=:id AND lead_staff_id=:me AND status<>'CLOSED'").param("id",id).param("me",CurrentUser.get().staffId()).query(Long.class).optional().orElseThrow(ApiException::notFound);}
 }

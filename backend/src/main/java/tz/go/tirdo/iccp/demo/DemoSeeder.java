@@ -101,6 +101,7 @@ public class DemoSeeder implements ApplicationRunner {
                 "The payment is scheduled in the October payment run. You will see it here once Finance publishes the run.")));
 
         seedAnnouncements();
+        DbSessionContext.runAs(DbSessionContext.system("demo"), () -> tx.executeWithoutResult(s -> seedWorkModules()));
         principals.evict(null);
         SecurityContextHolder.clearContext();
         log.info("Demo data loaded. Sign in on the dev screen, e.g. as TR1007 (staff), TR1041 (Finance officer) or TR1061 (Communication)");
@@ -122,6 +123,12 @@ public class DemoSeeder implements ApplicationRunner {
         grant("TR1041", "FIN_OFFICER", end, "TR1040 (Chief Accountant)");
         grant("TR1042", "FIN_OFFICER", end, "TR1040 (Chief Accountant)");
         grant("TR1040", "FIN_REVIEWER", end, "TR1030 (DCS)");
+        grant("TR1030", "DIRECTOR", null, null);
+        grant("TR1030", "PROJECT_LEAD", null, null);
+        grant("TR1030", "LINE_MANAGER", null, null);
+        grant("TR1031", "SERVICE_AGENT", null, null);
+        grant("TR1050", "RECORDS_OFFICER", null, null);
+        grant("TR1061", "PROJECT_LEAD", null, null);
     }
 
     private void grant(String employeeNo, String role, LocalDate endsOn, String approvedBy) {
@@ -179,6 +186,74 @@ public class DemoSeeder implements ApplicationRunner {
             announcements.submit(pending);
             return null;
         });
+    }
+
+    /** Representative cross-module records for demonstrations, smoke tests and production-like dashboards. */
+    private void seedWorkModules() {
+        jdbc.sql("""
+            INSERT INTO tsk.task(reference_no,title,description,source,priority,issuer_staff_id,assignee_staff_id,verifier_staff_id,due_on,status,progress_pct)
+            SELECT 'TSK-2026-001001','Complete laboratory safety inspection','Inspect emergency exits and update the corrective-action register.','AD_HOC','HIGH',i.id,a.id,i.id,current_date+7,'IN_PROGRESS',40
+              FROM dir.staff_member i,dir.staff_member a WHERE i.employee_no='TR1030' AND a.employee_no='TR1007'
+            ON CONFLICT(reference_no) DO NOTHING
+        """).update();
+        jdbc.sql("""
+            INSERT INTO tsk.task_event(task_id,event_type,from_status,to_status,comment,actor_staff_id)
+            SELECT t.id,'STATUS_CHANGED','ACCEPTED','IN_PROGRESS','Initial inspection completed; corrective actions being documented.',s.id
+              FROM tsk.task t,dir.staff_member s WHERE t.reference_no='TSK-2026-001001' AND s.employee_no='TR1007'
+              AND NOT EXISTS(SELECT 1 FROM tsk.task_event e WHERE e.task_id=t.id)
+        """).update();
+        jdbc.sql("""
+            INSERT INTO prj.workspace(code,title,ws_type,lead_staff_id,org_unit_id,starts_on,ends_on,funding_source,status)
+            SELECT 'RES-2026-014','Low-carbon cement durability study','RESEARCH',s.id,s.org_unit_id,current_date-60,current_date+180,'Institutional research fund','ACTIVE'
+              FROM dir.staff_member s WHERE s.employee_no='TR1030' ON CONFLICT(code) DO NOTHING
+        """).update();
+        jdbc.sql("""
+            INSERT INTO prj.workspace_member(workspace_id,staff_id,member_role)
+            SELECT w.id,s.id,CASE WHEN s.employee_no='TR1030' THEN 'LEAD' ELSE 'MEMBER' END FROM prj.workspace w JOIN dir.staff_member s ON s.employee_no IN('TR1030','TR1007','TR1061')
+             WHERE w.code='RES-2026-014' AND NOT EXISTS(SELECT 1 FROM prj.workspace_member m WHERE m.workspace_id=w.id AND m.staff_id=s.id AND m.removed_at IS NULL)
+        """).update();
+        jdbc.sql("""
+            INSERT INTO prj.milestone(workspace_id,title,planned_on,status)
+            SELECT w.id,v.title,current_date+v.days,v.status FROM prj.workspace w CROSS JOIN (VALUES('Complete accelerated ageing tests',30,'IN_PROGRESS'),('Submit technical paper',120,'PLANNED')) v(title,days,status)
+             WHERE w.code='RES-2026-014' AND NOT EXISTS(SELECT 1 FROM prj.milestone m WHERE m.workspace_id=w.id)
+        """).update();
+        jdbc.sql("""
+            INSERT INTO prj.progress_report(workspace_id,period_start,period_end,rag,achievements,issues,next_steps)
+            SELECT w.id,current_date-30,current_date,'GREEN','Baseline mixes prepared and 28-day strength tests completed.','One humidity chamber required maintenance.','Begin accelerated ageing cycle.'
+              FROM prj.workspace w WHERE w.code='RES-2026-014' AND NOT EXISTS(SELECT 1 FROM prj.progress_report r WHERE r.workspace_id=w.id)
+        """).update();
+        jdbc.sql("""
+            INSERT INTO req.service_request(reference_no,request_type_id,requester_staff_id,form_data,status,assigned_agent_staff_id,submitted_at)
+            SELECT 'REQ-2026-001002',t.id,r.id,'{"summary":"Calibrate portable gas detector","description":"Instrument is due for annual calibration before field deployment."}'::jsonb,'IN_FULFILMENT',a.id,now()-interval '6 hours'
+              FROM req.request_type t,dir.staff_member r,dir.staff_member a WHERE t.code='ICT_SUPPORT' AND r.employee_no='TR1007' AND a.employee_no='TR1031'
+            ON CONFLICT(reference_no) DO NOTHING
+        """).update();
+        jdbc.sql("""
+            INSERT INTO doc.document(document_type_id,title,owner_unit_id,classification,language,keywords,status,review_due_on)
+            SELECT t.id,'Laboratory Sample Chain-of-Custody SOP',s.org_unit_id,'INTERNAL','en',ARRAY['laboratory','samples','quality'],'PUBLISHED',current_date+365
+              FROM doc.document_type t,dir.staff_member s WHERE t.code='SOP' AND s.employee_no='TR1050'
+              AND NOT EXISTS(SELECT 1 FROM doc.document d WHERE d.title='Laboratory Sample Chain-of-Custody SOP')
+        """).update();
+        jdbc.sql("""
+            INSERT INTO msg.conversation(conv_type,title,owner_staff_id)
+            SELECT 'GROUP','Laboratory safety coordination',s.id FROM dir.staff_member s WHERE s.employee_no='TR1030'
+              AND NOT EXISTS(SELECT 1 FROM msg.conversation c WHERE c.title='Laboratory safety coordination')
+        """).update();
+        jdbc.sql("""
+            INSERT INTO msg.conversation_member(conversation_id,staff_id,member_role)
+            SELECT c.id,s.id,CASE WHEN s.employee_no='TR1030' THEN 'OWNER' ELSE 'MEMBER' END FROM msg.conversation c JOIN dir.staff_member s ON s.employee_no IN('TR1030','TR1007','TR1031')
+             WHERE c.title='Laboratory safety coordination' AND NOT EXISTS(SELECT 1 FROM msg.conversation_member m WHERE m.conversation_id=c.id AND m.staff_id=s.id)
+        """).update();
+        jdbc.sql("""
+            INSERT INTO msg.message(conversation_id,sender_staff_id,body)
+            SELECT c.id,s.id,'Please upload the inspection checklist before Friday so we can close the outstanding actions.' FROM msg.conversation c,dir.staff_member s
+             WHERE c.title='Laboratory safety coordination' AND s.employee_no='TR1030' AND NOT EXISTS(SELECT 1 FROM msg.message m WHERE m.conversation_id=c.id)
+        """).update();
+        jdbc.sql("""
+            INSERT INTO trn.training_offering(title,provider,mode,starts_on,ends_on,location,seats,application_deadline,indicative_cost,status)
+            SELECT 'ISO/IEC 17025 Internal Auditor Refresher','TIRDO Quality Directorate','INTERNAL',current_date+21,current_date+23,'Training Room 2',20,current_date+10,0,'OPEN'
+             WHERE NOT EXISTS(SELECT 1 FROM trn.training_offering WHERE title='ISO/IEC 17025 Internal Auditor Refresher')
+        """).update();
     }
 
     private UUID claimId(String sourceRef) {

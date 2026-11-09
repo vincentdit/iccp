@@ -23,3 +23,11 @@ Closed in the 4 November closure pass:
 * First sign-in now prefers the authoritative employee-number claim, with official email as fallback.
 * Audit search and display resolve the staff name while retaining the immutable identity subject for traceability.
 * Added GitHub Actions gates for backend verification, frontend production build and Docker Compose validation.
+
+Added in the 9 November production-capability pass:
+
+* Added controlled task deadline extensions, evidence-gated closure and validated progress updates.
+* Added service fulfilment queues, agent assignment, SLA due times, resolution, requester closure and satisfaction ratings.
+* Added project membership, milestone-state and non-overlapping RAG progress-report workflows.
+* Added conversation unread tracking, membership administration, retained message edits/deletes and message reporting.
+* Added representative demo records for tasks, projects, requests, controlled documents, messaging and training.
