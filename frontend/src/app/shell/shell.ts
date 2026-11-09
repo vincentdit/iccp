@@ -60,7 +60,7 @@ export class Shell {
   protected work = computed<NavItem[]>(() => {
     this.i18n.lang();
     const can = this.session.can();
-    const items: NavItem[] = [];
+    const items: NavItem[] = [{ path: '/work', icon: 'briefcase', label: this.i18n.t('nav.workHub'), tile: 'indigo' }];
     if (can?.publishAnnouncements || can?.approveAnnouncements) {
       items.push({ path: '/announcements/manage', icon: 'send', label: this.i18n.t('nav.manageNotices'), tile: 'orange' });
     }

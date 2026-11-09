@@ -28,6 +28,22 @@ public class SecAdminController {
     public SecAdminController(SecAdminService service) {
         this.service = service;
     }
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('SECURITY_ADMIN')")
+    public PageResult<SecAdminService.UserAccount> users(@RequestParam(required = false) String q,
+                                                         @RequestParam(required = false) String status,
+                                                         @RequestParam(required = false) Integer page,
+                                                         @RequestParam(required = false) Integer size) {
+        return service.users(q, status, page, size);
+    }
+
+    @PostMapping("/users/{id}/status")
+    @PreAuthorize("hasRole('SECURITY_ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void accountStatus(@PathVariable long id, @RequestBody SecAdminService.AccountStatusRequest request) {
+        service.setAccountStatus(id, request);
+    }
+
 
     @GetMapping("/roles")
     @PreAuthorize("hasAnyRole('SECURITY_ADMIN','AUDITOR')")

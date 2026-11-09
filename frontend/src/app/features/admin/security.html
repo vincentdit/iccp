@@ -6,7 +6,35 @@
   </app-page-header>
   <app-segmented [segments]="tabs()" [(value)]="tab" />
 
-  @if (tab() === 'roles') {
+  @if (tab() === 'users') {
+    <form class="filters user-filters" (ngSubmit)="loadUsers()">
+      <input class="input" name="userq" [(ngModel)]="userFilters.q" [placeholder]="'sec.userSearch' | t" />
+      <select class="select" name="userstatus" [(ngModel)]="userFilters.status">
+        <option value="ALL">{{ 'sec.allStatuses' | t }}</option>
+        <option value="ACTIVE">{{ 'status.ACTIVE' | t }}</option>
+        <option value="DISABLED">{{ 'status.DISABLED' | t }}</option>
+      </select>
+      <button class="btn btn-filled" type="submit"><app-icon name="search" /> {{ 'sec.search' | t }}</button>
+    </form>
+    <p class="group-foot">{{ 'sec.usersShowing' | t: { n: users().length, total: usersTotal() } }}</p>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>{{ 'sec.person' | t }}</th><th>{{ 'sec.identity' | t }}</th><th>{{ 'sec.roles' | t }}</th><th>{{ 'sec.lastSignIn' | t }}</th><th>{{ 'sec.outcome' | t }}</th><th></th></tr></thead>
+        <tbody>
+          @for (u of users(); track u.id) {
+            <tr>
+              <td><strong>{{ u.staffName }}</strong><div class="t-footnote secondary">{{ u.employeeNo }} &middot; {{ u.email }}<br />{{ u.unitName }}</div></td>
+              <td><app-status [value]="u.identityStatus" /></td>
+              <td>{{ u.roles || ('role.STAFF' | t) }}</td>
+              <td>{{ u.lastLoginAt ? i18n.dateTime(u.lastLoginAt) : ('sec.never' | t) }}</td>
+              <td><app-status [value]="u.status" /></td>
+              <td><button class="btn btn-tinted" [class.danger]="u.status === 'ACTIVE'" type="button" [disabled]="userBusy() === u.id" (click)="setUserStatus(u)">{{ (u.status === 'ACTIVE' ? 'sec.disable' : 'sec.enable') | t }}</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (tab() === 'roles') {
     @for (g of grouped(); track g.code) {
       <div class="group-label role-head">
         {{ g.name }}
@@ -71,6 +99,24 @@
           [disabled]="!grant.staff || !grant.roleCode || (grantRole()?.privileged && (!grant.endsOn || !grant.approvedBy))">{{ 'sec.grant' | t }}</button>
       </div>
     </app-sheet>
+  } @else if (tab() === 'notifications') {
+    @if (notificationOps(); as ops) {
+      <div class="metric-grid">
+        <div class="card metric"><span class="secondary">{{ 'ntfOps.smsToday' | t }}</span><strong>{{ ops.smsToday }}</strong></div>
+        <div class="card metric"><span class="secondary">{{ 'ntfOps.digestsToday' | t }}</span><strong>{{ ops.digestsToday }}</strong></div>
+        <div class="card metric"><span class="secondary">{{ 'ntfOps.deadLetters' | t }}</span><strong>{{ ops.deadLetters.length }}</strong></div>
+      </div>
+      <div class="section-head"><h2>{{ 'ntfOps.last24' | t }}</h2><button class="btn btn-tinted" type="button" (click)="loadNotificationOps()">{{ 'common.refresh' | t }}</button></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>{{ 'ntfOps.channel' | t }}</th><th>{{ 'ntfOps.status' | t }}</th><th class="r">{{ 'ntfOps.count' | t }}</th></tr></thead><tbody>
+        @for (row of ops.last24Hours; track row.channel + row.status) {<tr><td>{{ row.channel }}</td><td><app-status [value]="row.status" /></td><td class="r num">{{ row.count }}</td></tr>}
+      </tbody></table></div>
+      <h2>{{ 'ntfOps.deadLetterTitle' | t }}</h2>
+      @if (ops.deadLetters.length) {
+        <div class="table-wrap"><table class="table"><thead><tr><th>{{ 'ntfOps.when' | t }}</th><th>{{ 'ntfOps.channel' | t }}</th><th>{{ 'ntfOps.notification' | t }}</th><th>{{ 'ntfOps.error' | t }}</th>@if (session.can()?.securityAdmin) {<th></th>}</tr></thead><tbody>
+          @for (row of ops.deadLetters; track row.notificationId + '-' + row.channel) {<tr><td>{{ i18n.dateTime(row.createdAt) }}</td><td>{{ row.channel }}</td><td>#{{ row.notificationId }} &middot; {{ 'ntfOps.attempt' | t: { n: row.attemptNo } }}</td><td>{{ row.error || '-' }}</td>@if (session.can()?.securityAdmin) {<td><button class="btn btn-tinted" type="button" (click)="retryDelivery(row.notificationId, row.channel)">{{ 'ntfOps.retry' | t }}</button></td>}</tr>}
+        </tbody></table></div>
+      } @else {<app-empty icon="checkCircle" [title]="'ntfOps.noDeadLetters' | t" />}
+    } @else {<div class="card">{{ 'common.loading' | t }}</div>}
   } @else {
     <div class="chain card" [class.ok]="chain()?.intact" [class.bad]="chain() && !chain()!.intact">
       <app-icon [name]="chain() ? (chain()!.intact ? 'checkCircle' : 'warning') : 'fingerprint'" />

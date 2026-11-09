@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { Api } from '../../core/api.service';
 import { I18n, TPipe } from '../../core/i18n.service';
-import { AuditRow, Page, RoleAssignment, RoleInfo, StaffSummary } from '../../core/models';
+import { AuditRow, NotificationOperationsSummary, Page, RoleAssignment, RoleInfo, StaffSummary, UserAccount } from '../../core/models';
 import { Session } from '../../core/session.service';
 import { Toasts } from '../../core/toast.service';
 import { Avatar } from '../../ui/avatar';
@@ -27,11 +27,13 @@ export class SecurityAdmin {
   protected i18n = inject(I18n);
   protected session = inject(Session);
 
-  protected tab = signal(this.session.can()?.securityAdmin ? 'roles' : 'audit');
+  protected tab = signal(this.session.can()?.securityAdmin ? 'users' : 'audit');
   protected tabs = computed(() => {
     this.i18n.lang();
     const t = [];
+    if (this.session.can()?.securityAdmin) t.push({ value: 'users', label: this.i18n.t('sec.users') });
     if (this.session.can()?.securityAdmin) t.push({ value: 'roles', label: this.i18n.t('sec.roles') });
+    t.push({ value: 'notifications', label: this.i18n.t('ntfOps.tab') });
     t.push({ value: 'audit', label: this.i18n.t('sec.audit') });
     return t;
   });
@@ -57,15 +59,67 @@ export class SecurityAdmin {
   protected filters = { actor: '', module: '', action: '', resourceId: '' };
   protected chain = signal<{ intact: boolean; firstBrokenSeq?: number; events: number } | null>(null);
   protected expanded = signal<number | null>(null);
+  protected notificationOps = signal<NotificationOperationsSummary | null>(null);
+  protected users = signal<UserAccount[]>([]);
+  protected usersTotal = signal(0);
+  protected userFilters = { q: '', status: 'ALL' };
+  protected userBusy = signal<number | null>(null);
+
 
   constructor() {
     effect(() => {
-      if (this.tab() === 'roles') {
+      if (this.tab() === 'users') {
+        this.loadUsers();
+      } else if (this.tab() === 'roles') {
         this.api.get<RoleInfo[]>('/sec/roles').subscribe((r) => this.roles.set(r));
         this.loadAssignments();
+      } else if (this.tab() === 'notifications') {
+        this.loadNotificationOps();
       } else {
         this.searchAudit();
       }
+    });
+  }
+
+  protected loadUsers() {
+    this.api.get<Page<UserAccount>>('/sec/users', { ...this.userFilters, size: 100 }).subscribe({
+      next: (page) => {
+        this.users.set(page.items);
+        this.usersTotal.set(page.total);
+      },
+      error: (e) => this.toasts.error(e),
+    });
+  }
+
+  protected setUserStatus(user: UserAccount) {
+    const next = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+    if (!confirm(this.i18n.t(next === 'DISABLED' ? 'sec.disableConfirm' : 'sec.enableConfirm', { name: user.staffName }))) return;
+    this.userBusy.set(user.id);
+    this.api.post('/sec/users/' + user.id + '/status', { status: next }).subscribe({
+      next: () => {
+        this.toasts.show(this.i18n.t(next === 'ACTIVE' ? 'sec.enabled' : 'sec.disabled'));
+        this.userBusy.set(null);
+        this.loadUsers();
+      },
+      error: (e) => { this.userBusy.set(null); this.toasts.error(e); },
+    });
+  }
+
+  protected retryDelivery(notificationId: number, channel: string) {
+    if (!confirm(this.i18n.t('ntfOps.retryConfirm'))) return;
+    this.api.post('/ntf/admin/dead-letters/' + notificationId + '/' + channel + '/retry').subscribe({
+      next: () => {
+        this.toasts.show(this.i18n.t('ntfOps.requeued'));
+        this.loadNotificationOps();
+      },
+      error: (e) => this.toasts.error(e),
+    });
+  }
+
+  protected loadNotificationOps() {
+    this.api.get<NotificationOperationsSummary>('/ntf/admin/summary').subscribe({
+      next: (summary) => this.notificationOps.set(summary),
+      error: (e) => this.toasts.error(e),
     });
   }
 

@@ -1,0 +1,75 @@
+<app-page-header [title]="title()" [subtitle]="subtitle()">
+  @if (!['analytics','training'].includes(tab())) {
+    <button class="primary" type="button" (click)="composing.set(!composing())">{{ composing() ? 'Cancel' : 'New' }}</button>
+  }
+</app-page-header>
+
+<div class="module-tabs"><app-segmented [segments]="tabs" [(value)]="tab" label="Work modules" /></div>
+
+@if (composing()) {
+  <section class="form-card" aria-label="Create">
+    @switch (tab()) {
+      @case ('tasks') {
+        <label>Title<input [(ngModel)]="task.title" /></label>
+        <label>Description<textarea [(ngModel)]="task.description"></textarea></label>
+        <div class="grid"><label>Assignee<select [(ngModel)]="task.assigneeStaffPublicId"><option value="">Choose staff</option>@for(s of staff();track s.publicId){<option [value]="s.publicId">{{s.displayName}} · {{s.employeeNo}}</option>}</select></label>
+        <label>Due date<input type="date" [(ngModel)]="task.dueOn" /></label>
+        <label>Priority<select [(ngModel)]="task.priority"><option>NORMAL</option><option>HIGH</option><option>CRITICAL</option><option>LOW</option></select></label></div>
+      }
+      @case ('messages') {
+        <label>Conversation name<input [(ngModel)]="conversation.title" /></label>
+        <label>Add colleague<select [(ngModel)]="conversation.memberPublicId"><option value="">Choose staff</option>@for(s of staff();track s.publicId){<option [value]="s.publicId">{{s.displayName}}</option>}</select></label>
+      }
+      @case ('documents') {
+        <label>Document title<input [(ngModel)]="document.title" /></label>
+        <div class="grid"><label>Type<select [(ngModel)]="document.typeCode">@for(t of documentTypes();track t.code){<option [value]="t.code">{{t.nameEn}}</option>}</select></label>
+        <label>Classification<select [(ngModel)]="document.classification"><option>INTERNAL</option><option>PUBLIC</option><option>RESTRICTED</option><option>CONFIDENTIAL</option></select></label>
+        <label>Language<select [(ngModel)]="document.language"><option value="en">English</option><option value="sw">Kiswahili</option></select></label></div>
+      }
+      @case ('projects') {
+        <div class="grid"><label>Code<input [(ngModel)]="project.code" /></label><label>Title<input [(ngModel)]="project.title" /></label>
+        <label>Type<select [(ngModel)]="project.type"><option>INTERNAL</option><option>RESEARCH</option><option>CONSULTANCY</option></select></label>
+        <label>Start date<input type="date" [(ngModel)]="project.startsOn" /></label></div>
+      }
+      @case ('requests') {
+        <label>Request type<select [(ngModel)]="request.requestTypeId">@for(t of requestTypes();track t.id){<option [ngValue]="t.id">{{t.category}} · {{t.nameEn}}</option>}</select></label>
+        <label>Summary<input [(ngModel)]="request.summary" /></label><label>Details<textarea [(ngModel)]="request.description"></textarea></label>
+      }
+      @case ('feedback') {
+        <label>Category<select [(ngModel)]="feedback.category"><option>Service improvement</option><option>Workplace</option><option>Innovation</option><option>Other</option></select></label>
+        <label>Your suggestion<textarea [(ngModel)]="feedback.description"></textarea></label>
+      }
+    }
+    <div class="form-actions"><button class="primary" type="button" [disabled]="busy()" (click)="create()">Save</button></div>
+  </section>
+}
+
+@switch (tab()) {
+  @case ('tasks') {
+    <div class="stats"><div><strong>{{tasks().length}}</strong><span>Visible tasks</span></div><div><strong>{{openTasks()}}</strong><span>Open</span></div><div><strong>{{overdueTasks()}}</strong><span>Overdue</span></div></div>
+    <section class="list">@for(t of tasks();track t.publicId){<article><div class="grow"><div class="eyebrow">{{t.referenceNo}} · {{t.priority}}</div><h3>{{t.title}}</h3><p>{{t.assigneeName}} · due {{t.dueOn}}</p></div><app-status [value]="t.status" />@if(t.canAct&&nextTask(t)){<button type="button" (click)="transition(t,nextTask(t))">{{nextTask(t).replaceAll('_',' ')}}</button>}</article>}@empty{<app-empty icon="checkmark" title="No tasks yet" description="Create the first assignment from New." />}</section>
+  }
+  @case ('messages') {
+    <div class="split"><section class="list">@for(c of conversations();track c.publicId){<button class="conversation" type="button" [class.selected]="activeConversation()?.publicId===c.publicId" (click)="openConversation(c)"><strong>{{c.title}}</strong><span>{{c.lastMessage||c.memberCount+' members'}}</span></button>}@empty{<app-empty icon="message" title="No conversations" description="Start a secure staff conversation." />}</section>
+    <section class="thread">@if(activeConversation()){<h2>{{activeConversation()!.title}}</h2><div class="messages">@for(m of messages();track m.id){<div class="bubble" [class.mine]="m.mine"><small>{{m.senderName}}</small>{{m.body}}</div>}</div><div class="composer"><input placeholder="Message" [(ngModel)]="conversation.body" (keyup.enter)="send()" /><button class="primary" type="button" (click)="send()">Send</button></div>}@else{<app-empty icon="message" title="Choose a conversation" description="Messages stay within authorised membership." />}</section></div>
+  }
+  @case ('documents') {
+    <section class="list">@for(d of documents();track d.publicId){<article><div class="grow"><div class="eyebrow">{{d.typeName}} · {{d.classification}}</div><h3>{{d.title}}</h3><p>{{d.ownerUnit}}{{d.reviewDueOn?' · review '+d.reviewDueOn:''}}</p></div><app-status [value]="d.status" /></article>}@empty{<app-empty icon="doc" title="No documents" description="Create a controlled document record." />}</section>
+  }
+  @case ('projects') {
+    <section class="cards">@for(p of projects();track p.publicId){<article><div class="eyebrow">{{p.code}} · {{p.type}}</div><h3>{{p.title}}</h3><p>{{p.leadName}} · {{p.unitName}}</p><div class="card-foot"><span>{{p.milestones}} milestones · {{p.overdueMilestones}} overdue</span><app-status [value]="p.status" /></div></article>}@empty{<app-empty icon="folder" title="No workspaces" description="Project leads can create research and consultancy workspaces." />}</section>
+  }
+  @case ('requests') {
+    <section class="list">@for(r of requests();track r.publicId){<article><div class="grow"><div class="eyebrow">{{r.referenceNo}} · {{r.category}}</div><h3>{{r.typeName}}</h3><p>{{r.summary}}</p></div><app-status [value]="r.status" /></article>}@empty{<app-empty icon="tray" title="No requests" description="Start with New to request an internal service." />}</section>
+  }
+  @case ('training') {
+    <label class="justification">Application justification<input [(ngModel)]="trainingJustification" placeholder="Why this training supports your work" /></label>
+    <section class="cards">@for(o of offerings();track o.publicId){<article><div class="eyebrow">{{o.mode}} · {{o.provider}}</div><h3>{{o.title}}</h3><p>{{o.startsOn||'Date to be confirmed'}}{{o.location?' · '+o.location:''}}</p><div class="card-foot">@if(o.applicationStatus){<app-status [value]="o.applicationStatus" />}@else{<button class="primary" type="button" (click)="apply(o)">Apply</button>}</div></article>}@empty{<app-empty icon="book" title="No open training" description="Published opportunities will appear here." />}</section>
+  }
+  @case ('analytics') {
+    <p class="as-at">As at {{dashboard()?.asAt | date:'medium'}}</p><section class="metrics">@for(m of dashboard()?.metrics??[];track m.code){<article><span>{{m.label}}</span><strong>{{m.value}}</strong><small>{{m.unit}}</small></article>}</section>
+  }
+  @case ('feedback') {
+    <section class="list">@for(s of suggestions();track s.publicId){<article><div class="grow"><div class="eyebrow">{{s.category}}</div><h3>{{s.description}}</h3>@if(s.response){<p>{{s.response}}</p>}</div><app-status [value]="s.status" /></article>}@empty{<app-empty icon="bubble" title="No suggestions" description="Share an identified suggestion and track its response." />}</section>
+  }
+}

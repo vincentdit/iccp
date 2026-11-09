@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 
@@ -45,9 +46,94 @@ public class SecAdminService {
                                 String approvedBy, String approvalRef) {
     }
 
+    public record UserAccount(long id, UUID staffPublicId, String employeeNo, String staffName, String email, String unitName,
+                              String status, String accountType, String identityStatus, OffsetDateTime lastLoginAt,
+                              OffsetDateTime createdAt, String roles) {
+    }
+
+    public record AccountStatusRequest(String status) {
+    }
+
+    record AccountState(long id, long staffId, String subject, String status) {
+    }
+
     @Transactional(readOnly = true)
     public List<RoleInfo> roles() {
         return jdbc.sql("SELECT code, name, privileged, requires_mfa FROM sec.role ORDER BY privileged, code").query(RoleInfo.class).list();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<UserAccount> users(String query, String status, Integer page, Integer size) {
+        int pg = PageResult.clampPage(page), sz = PageResult.clampSize(size);
+        StringBuilder where = new StringBuilder(" WHERE a.account_type = 'STAFF'");
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (query != null && !query.isBlank()) {
+            where.append(" AND (upper(s.employee_no) LIKE upper(:q) OR lower(concat_ws(' ', s.title, s.first_name, s.last_name)) LIKE lower(:q) OR lower(s.official_email) LIKE lower(:q))");
+            params.put("q", "%" + query.trim() + "%");
+        }
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            where.append(" AND a.status = :status");
+            params.put("status", status.toUpperCase());
+        }
+        String from = """
+                 FROM sec.user_account a
+                 JOIN dir.staff_member s ON s.id = a.staff_id
+                 JOIN dir.org_unit u ON u.id = s.org_unit_id
+                """;
+        long total = jdbc.sql("SELECT count(*)" + from + where).params(params).query(Long.class).single();
+        List<UserAccount> rows = jdbc.sql("""
+                SELECT a.id, s.public_id AS staff_public_id, s.employee_no,
+                       concat_ws(' ', nullif(s.title, ''), s.first_name, s.last_name) AS staff_name,
+                       s.official_email AS email, u.name_en AS unit_name, a.status, a.account_type,
+                       CASE WHEN a.keycloak_subject LIKE 'pending:%' THEN 'PENDING'
+                            WHEN a.keycloak_subject LIKE 'dev:%' THEN 'DEVELOPMENT' ELSE 'LINKED' END AS identity_status,
+                       a.last_login_at, a.created_at,
+                       coalesce(string_agg(DISTINCT r.code, ', ' ORDER BY r.code), '') AS roles
+                """ + from + """
+                 LEFT JOIN sec.role_assignment ra ON ra.user_account_id = a.id AND ra.starts_on <= current_date
+                    AND (ra.ends_on IS NULL OR ra.ends_on >= current_date)
+                 LEFT JOIN sec.role r ON r.id = ra.role_id
+                """ + where + """
+                 GROUP BY a.id, s.public_id, s.employee_no, s.title, s.first_name, s.last_name,
+                          s.official_email, u.name_en
+                 ORDER BY s.last_name, s.first_name LIMIT :limit OFFSET :offset
+                """).params(params).param("limit", sz).param("offset", pg * sz).query(UserAccount.class).list();
+        return new PageResult<>(rows, total, pg, sz);
+    }
+
+    @Transactional
+    public void setAccountStatus(long accountId, AccountStatusRequest request) {
+        String next = request == null || request.status() == null ? "" : request.status().toUpperCase();
+        if (!Set.of("ACTIVE", "DISABLED").contains(next)) {
+            throw ApiException.badRequest("ICCP-SEC-020", "Account status must be ACTIVE or DISABLED");
+        }
+        AccountState account = jdbc.sql("SELECT id, staff_id, keycloak_subject AS subject, status FROM sec.user_account WHERE id = :id AND account_type = 'STAFF'")
+                .param("id", accountId).query(AccountState.class).optional().orElseThrow(ApiException::notFound);
+        if (account.id() == CurrentUser.get().accountId() && "DISABLED".equals(next)) {
+            throw ApiException.conflict("ICCP-SEC-021", "You cannot disable your own account");
+        }
+        if ("DISABLED".equals(next)) {
+            boolean isAdmin = jdbc.sql("""
+                    SELECT EXISTS (SELECT 1 FROM sec.role_assignment ra JOIN sec.role r ON r.id = ra.role_id
+                     WHERE ra.user_account_id = :id AND r.code = 'SECURITY_ADMIN' AND ra.starts_on <= current_date
+                       AND (ra.ends_on IS NULL OR ra.ends_on >= current_date))
+                    """).param("id", accountId).query(Boolean.class).single();
+            long activeAdmins = jdbc.sql("""
+                    SELECT count(DISTINCT a.id) FROM sec.user_account a JOIN sec.role_assignment ra ON ra.user_account_id = a.id
+                     JOIN sec.role r ON r.id = ra.role_id WHERE a.status = 'ACTIVE' AND r.code = 'SECURITY_ADMIN'
+                       AND ra.starts_on <= current_date AND (ra.ends_on IS NULL OR ra.ends_on >= current_date)
+                    """).query(Long.class).single();
+            if (isAdmin && activeAdmins <= 1) {
+                throw ApiException.conflict("ICCP-SEC-022", "The last active Security Administrator cannot be disabled");
+            }
+        }
+        if (!next.equals(account.status())) {
+            jdbc.sql("UPDATE sec.user_account SET status = :status, deprovisioned_at = CASE WHEN :status = 'DISABLED' THEN now() ELSE NULL END WHERE id = :id")
+                    .param("status", next).param("id", accountId).update();
+            audit.record("SEC", "ACCOUNT_STATUS_CHANGE", "user_account", accountId,
+                    Map.of("from", account.status(), "to", next, "staffId", account.staffId()));
+            principals.evict(account.subject());
+        }
     }
 
     private static final String ASSIGNMENT_SELECT = """

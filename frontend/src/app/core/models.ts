@@ -447,6 +447,21 @@ export interface FinDashboard {
 }
 
 // ---------------------------------------------------------------- security
+export interface UserAccount {
+  id: number;
+  staffPublicId: string;
+  employeeNo: string;
+  staffName: string;
+  email: string;
+  unitName: string;
+  status: 'ACTIVE' | 'DISABLED';
+  accountType: string;
+  identityStatus: 'LINKED' | 'PENDING' | 'DEVELOPMENT';
+  lastLoginAt?: string;
+  createdAt: string;
+  roles: string;
+}
+
 export interface RoleInfo {
   code: string;
   name: string;
@@ -469,6 +484,13 @@ export interface RoleAssignment {
   approvalRef?: string;
   createdBy: string;
   createdAt: string;
+}
+
+export interface NotificationOperationsSummary {
+  last24Hours: { channel: string; status: string; count: number }[];
+  smsToday: number;
+  digestsToday: number;
+  deadLetters: { notificationId: number; channel: string; attemptNo: number; error?: string; createdAt: string }[];
 }
 
 export interface AuditRow {

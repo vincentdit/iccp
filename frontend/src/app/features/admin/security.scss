@@ -33,6 +33,10 @@ app-segmented {
   display: flex;
   align-items: center;
   gap: 14px;
+.user-filters {
+  grid-template-columns: minmax(260px, 1fr) 180px auto;
+}
+
   flex-wrap: wrap;
   margin-bottom: 18px;
   --icon-size: 30px;
@@ -75,7 +79,12 @@ pre {
   font-size: var(--fs-caption);
   white-space: pre-wrap;
 }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+.metric { display: grid; gap: 8px; }
+.metric strong { font-size: 2rem; }
+.section-head { display: flex; align-items: center; justify-content: space-between; }
 @media (max-width: 900px) {
+  .metric-grid { grid-template-columns: 1fr; }
   .filters {
     grid-template-columns: 1fr 1fr;
   }

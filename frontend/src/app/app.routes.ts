@@ -74,6 +74,7 @@ export const routes: Routes = [
         ],
       },
       { path: 'notifications', loadComponent: () => import('./features/notifications/inbox').then((m) => m.InboxPage), title: 'Notifications – ICCP' },
+      { path: 'work', loadComponent: () => import('./features/work/work-hub').then((m) => m.WorkHub), title: 'Work hub - ICCP' },
       {
         path: 'meetings', canActivate: [meetingsSystemGuard], children: [
           { path: '', loadComponent: () => import('./features/meetings/meetings').then((m) => m.MeetingsPage), title: 'Meetings – ICCP' },
