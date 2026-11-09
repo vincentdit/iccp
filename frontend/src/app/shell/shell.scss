@@ -101,7 +101,9 @@ nav {
     text-decoration: none;
   }
   &.active {
-    background: var(--fill);
+    color: var(--tint);
+    background: var(--tint-soft);
+    box-shadow: inset 3px 0 0 var(--tint), inset 0 0 0 1px color-mix(in srgb, var(--tint) 28%, transparent);
     font-weight: 600;
   }
 }
@@ -236,7 +238,8 @@ main {
       }
       &.active {
         color: var(--tint);
-        background: var(--fill-quiet);
+        background: var(--tint-soft);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 35%, transparent);
       }
     }
   }

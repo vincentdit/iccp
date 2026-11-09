@@ -617,6 +617,7 @@ button.list-row {
     white-space: nowrap;
     &[aria-pressed='true'] {
       font-weight: 600;
+      color: var(--tint);
     }
   }
   .thumb {
@@ -628,15 +629,13 @@ button.list-row {
     width: calc((100% - 4px) / var(--seg-count));
     transform: translateX(calc(100% * var(--seg-index)));
     border-radius: 7px;
-    background: var(--bg-elevated);
+    background: color-mix(in srgb, var(--tint) 18%, var(--bg-elevated));
     box-shadow:
+      inset 0 0 0 1.5px color-mix(in srgb, var(--tint) 72%, transparent),
       0 3px 8px rgba(0, 0, 0, 0.12),
       0 3px 1px rgba(0, 0, 0, 0.04);
     transition: transform var(--dur-2) var(--spring);
   }
-}
-:root[data-theme='dark'] .segmented .thumb {
-  background: #636366;
 }
 
 // Switch (HIG toggle)

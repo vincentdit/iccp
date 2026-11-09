@@ -65,7 +65,7 @@
   }
   @case ('training') {
     <label class="justification">Application justification<input [(ngModel)]="trainingJustification" placeholder="Why this training supports your work" /></label>
-    <section class="cards">@for(o of offerings();track o.publicId){<article><div class="eyebrow">{{o.mode}} · {{o.provider}}</div><h3>{{o.title}}</h3><p>{{o.startsOn||'Date to be confirmed'}}{{o.location?' · '+o.location:''}}</p><div class="card-foot">@if(o.applicationStatus){<app-status [value]="o.applicationStatus" />}@else{<button class="primary" type="button" (click)="apply(o)">Apply</button>}</div></article>}@empty{<app-empty icon="book" title="No open training" description="Published opportunities will appear here." />}</section>
+    <section class="cards">@for(o of offerings();track o.publicId){<article><div class="eyebrow">{{o.mode}} · {{o.provider}}</div><h3>{{o.title}}</h3><p>{{o.startsOn||'Date to be confirmed'}}{{o.location?' · '+o.location:''}}</p><div class="card-foot">@if(o.applicationStatus){<app-status [value]="o.applicationStatus" />}@else{<button class="primary" type="button" [disabled]="!trainingJustification.trim()" (click)="apply(o)">Apply</button>}</div></article>}@empty{<app-empty icon="book" title="No open training" description="Published opportunities will appear here." />}</section>
   }
   @case ('analytics') {
     <p class="as-at">As at {{dashboard()?.asAt | date:'medium'}}</p><section class="metrics">@for(m of dashboard()?.metrics??[];track m.code){<article><span>{{m.label}}</span><strong>{{m.value}}</strong><small>{{m.unit}}</small></article>}</section>

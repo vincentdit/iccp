@@ -120,7 +120,7 @@ export class WorkHub {
     this.api.post('/msg/conversations/'+c.publicId+'/messages',{body:this.conversation.body}).subscribe({next:()=>{this.conversation.body='';this.openConversation(c);},error:e=>this.toasts.error(e)});
   }
   protected apply(o:Offering){
-    if(!this.trainingJustification.trim())return this.toasts.show('Add a justification first');
+    if(!this.trainingJustification.trim())return this.toasts.show('Add a justification first','info');
     this.api.post('/trn/offerings/'+o.publicId+'/apply',{justification:this.trainingJustification}).subscribe({next:()=>{this.trainingJustification='';this.load('training');this.toasts.show('Application submitted');},error:e=>this.toasts.error(e)});
   }
   protected startExtension(t:TaskRow){this.extensionTask.set(t);this.extensionDue='';this.extensionReason='';}
