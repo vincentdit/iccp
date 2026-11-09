@@ -42,6 +42,10 @@ public final class FinTypes {
                               List<QuerySummary> queries) {
     }
 
+    public record Statement(String employeeNo, String staffName, LocalDate from, LocalDate to, OffsetDateTime generatedAt,
+                            OffsetDateTime asAt, List<Summary> summaries, List<ClaimLine> claims) {
+    }
+
     // ------------------------------------------------------------ queries (BP-FIN-02)
 
     public record NewQuery(@NotBlank @Pattern(regexp = "AMOUNT|MISSING_PAYMENT|WRONG_CLAIM|OTHER") String category,

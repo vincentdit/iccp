@@ -18,6 +18,7 @@ import tz.go.tirdo.iccp.sec.api.RoleDirectory;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -145,6 +146,40 @@ public class FinancialDiaryService {
         List<FinTypes.QuerySummary> queries = jdbc.sql(QUERY_SUMMARY + " WHERE c.public_id = :id AND q.staff_id = :me ORDER BY q.created_at DESC")
                 .param("id", publicId).param("me", me).query(FinTypes.QuerySummary.class).list();
         return new FinTypes.ClaimDetail(line, voucher, allocations, adjustments, queries);
+    }
+
+    @Transactional
+    public FinTypes.Statement statement(LocalDate from, LocalDate to) {
+        LocalDate end = to == null ? LocalDate.now() : to;
+        LocalDate start = from == null ? end.minusYears(1).plusDays(1) : from;
+        if (start.isAfter(end) || start.isBefore(end.minusYears(5))) {
+            throw ApiException.badRequest("ICCP-FIN-030", "Choose a valid statement period of no more than five years.");
+        }
+        IccpPrincipal me = CurrentUser.get();
+        List<FinTypes.ClaimLine> lines = jdbc.sql(CLAIM_SELECT + """
+                 WHERE v.staff_id = :me AND v.approval_date BETWEEN :from AND :to
+                 ORDER BY v.approval_date, v.claim_id
+                """).param("me", me.staffId()).param("from", start).param("to", end).query(FinTypes.ClaimLine.class).list();
+        List<FinTypes.Summary> totals = summaryFor(lines, summary().stream().map(FinTypes.Summary::asAt).filter(java.util.Objects::nonNull)
+                .max(OffsetDateTime::compareTo).orElse(null));
+        audit.record("FIN", "STATEMENT_GENERATE", "staff_statement", me.staffPublicId(),
+                Map.of("from", start.toString(), "to", end.toString()));
+        OffsetDateTime asAt = totals.stream().map(FinTypes.Summary::asAt).filter(java.util.Objects::nonNull)
+                .max(OffsetDateTime::compareTo).orElse(null);
+        return new FinTypes.Statement(me.employeeNo(), me.displayName(), start, end, OffsetDateTime.now(), asAt, totals, lines);
+    }
+
+    private static List<FinTypes.Summary> summaryFor(List<FinTypes.ClaimLine> lines, OffsetDateTime asAt) {
+        return lines.stream().collect(java.util.stream.Collectors.groupingBy(FinTypes.ClaimLine::currency,
+                        java.util.LinkedHashMap::new, java.util.stream.Collectors.toList())).entrySet().stream().map(e -> {
+            BigDecimal approved = e.getValue().stream().map(c -> c.approvedAmount().add(c.adjustmentAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal paid = e.getValue().stream().map(FinTypes.ClaimLine::paidAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal outstanding = e.getValue().stream().map(FinTypes.ClaimLine::outstandingAmount)
+                    .map(v -> v.max(BigDecimal.ZERO)).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal pct = approved.signum() <= 0 ? BigDecimal.ZERO : paid.multiply(BigDecimal.valueOf(100))
+                    .divide(approved, 1, RoundingMode.HALF_UP).min(BigDecimal.valueOf(100));
+            return new FinTypes.Summary(e.getKey(), approved, paid, outstanding, pct, e.getValue().size(), 0, asAt);
+        }).toList();
     }
 
     // ---------------------------------------------------------------- queries (BP-FIN-02)

@@ -48,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
@@ -57,6 +57,15 @@ management:
     # Mail and SMS are delivered asynchronously with retries; an unavailable relay must not take the API out of the load balancer.
     mail:
       enabled: false
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: TIRDO ICCP
+    version: ${iccp.app.version}
+    release: R1
 
 springdoc:
   api-docs:
@@ -112,6 +121,19 @@ logging:
     tz.go.tirdo.iccp: INFO
 
 ---
+spring:
+  config:
+    activate:
+      on-profile: prod
+logging:
+  structured:
+    format:
+      console: ecs
+iccp:
+  files:
+    store: minio
+
+---
 # Local development: HS256 sign-in from /api/v1/dev/login, no Keycloak needed.
 spring:
   config:
@@ -135,12 +157,3 @@ spring:
 iccp:
   demo:
     enabled: true
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-iccp:
-  files:
-    store: minio

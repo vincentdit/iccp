@@ -20,6 +20,7 @@ import tz.go.tirdo.iccp.fin.FinanceBatchService;
 import tz.go.tirdo.iccp.fin.FinanceCsvTemplate;
 import tz.go.tirdo.iccp.fin.FinanceImportService;
 import tz.go.tirdo.iccp.fin.FinancialDiaryService;
+import tz.go.tirdo.iccp.fin.FinanceStatementPdf;
 import tz.go.tirdo.iccp.platform.security.CurrentUser;
 import tz.go.tirdo.iccp.platform.security.Roles;
 import tz.go.tirdo.iccp.platform.web.ApiException;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDate;
 
 /** Financial Diary (staff) and Finance workspace endpoints — Doc 07 §FIN. */
 @RestController
@@ -39,11 +41,13 @@ public class FinanceController {
     private final FinancialDiaryService diary;
     private final FinanceImportService imports;
     private final FinanceBatchService batches;
+    private final FinanceStatementPdf statements;
 
-    public FinanceController(FinancialDiaryService diary, FinanceImportService imports, FinanceBatchService batches) {
+    public FinanceController(FinancialDiaryService diary, FinanceImportService imports, FinanceBatchService batches, FinanceStatementPdf statements) {
         this.diary = diary;
         this.imports = imports;
         this.batches = batches;
+        this.statements = statements;
     }
 
     // ---------------------------------------------------------------- staff diary
@@ -63,6 +67,17 @@ public class FinanceController {
     @GetMapping("/me/claims/{id}")
     public FinTypes.ClaimDetail claim(@PathVariable UUID id) {
         return diary.claim(id);
+    }
+
+    @GetMapping(value = "/me/statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> statement(@RequestParam(required = false) LocalDate from,
+                                            @RequestParam(required = false) LocalDate to) {
+        FinTypes.Statement statement = diary.statement(from, to);
+        String fileName = "iccp-financial-statement-" + statement.from() + "-to-" + statement.to() + ".pdf";
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .header("Cache-Control", "private, no-store")
+                .body(statements.generate(statement));
     }
 
     @PostMapping("/me/claims/{id}/queries")

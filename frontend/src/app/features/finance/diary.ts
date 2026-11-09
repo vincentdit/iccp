@@ -43,6 +43,8 @@ export class Diary {
   protected queries = signal<QuerySummary[]>([]);
   protected status = signal('');
   protected q = '';
+  protected statementFrom = new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().slice(0, 10);
+  protected statementTo = new Date().toISOString().slice(0, 10);
   private q$ = new Subject<string>();
   private search = signal('');
 
@@ -76,5 +78,9 @@ export class Diary {
 
   protected claimType(c: ClaimLine): string {
     return this.i18n.lang() === 'sw' ? c.claimTypeSw : c.claimTypeEn;
+  }
+
+  protected downloadStatement(): void {
+    this.api.download(`/fin/me/statement?from=${this.statementFrom}&to=${this.statementTo}`, `iccp-financial-statement-${this.statementFrom}-to-${this.statementTo}.pdf`);
   }
 }
