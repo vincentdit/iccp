@@ -90,7 +90,7 @@ public class FinanceImportService {
         List<CsvReader.Row> rows;
         String parseError = null;
         try {
-            rows = CsvReader.parse(new String(content, StandardCharsets.UTF_8));
+            rows = FinanceCsvFormat.normalize(CsvReader.parse(new String(content, StandardCharsets.UTF_8)));
         } catch (IllegalArgumentException e) {
             rows = List.of();
             parseError = e.getMessage();

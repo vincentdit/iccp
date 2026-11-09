@@ -351,8 +351,8 @@ export const DICTIONARY: Record<string, Entry> = {
   'ws.import.choose': { en: 'Choose file', sw: 'Chagua faili' },
   'ws.import.templateTitle': { en: 'Start with the approved template', sw: 'Anza na kiolezo kilichoidhinishwa' },
   'ws.import.templateHelp': {
-    en: 'Replace the example values, remove unused row types, and update the trailer with the number of C, P, A and J rows plus the claim, payment and allocation totals.',
-    sw: 'Badilisha thamani za mfano, ondoa aina za mistari zisizotumika, kisha sasisha mstari wa mwisho kwa idadi ya mistari ya C, P, A na J pamoja na jumla za madai, malipo na migawanyo.',
+    en: 'Use the named columns in Excel. Replace the example values, add or remove detail rows, and update the T row counts and totals before upload.',
+    sw: 'Tumia safu zenye majina katika Excel. Badilisha mifano, ongeza au ondoa mistari ya taarifa, kisha sasisha idadi na jumla katika mstari wa T kabla ya kupakia.',
   },
   'ws.import.templateDownload': { en: 'Download CSV template', sw: 'Pakua kiolezo cha CSV' },
   'ws.import.uploading': { en: 'Checking the file…', sw: 'Faili linakaguliwa…' },
