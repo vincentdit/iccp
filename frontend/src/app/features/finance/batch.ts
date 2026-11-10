@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms';
 import { Api } from '../../core/api.service';
 import { I18n, TPipe } from '../../core/i18n.service';
-import { Batch, QuarantineItem } from '../../core/models';
+import { Batch, FinanceReportVerification, QuarantineItem } from '../../core/models';
 import { Session } from '../../core/session.service';
 import { Toasts } from '../../core/toast.service';
 import { Icon } from '../../ui/icon';
@@ -27,6 +27,22 @@ import { Status } from '../../ui/status';
             <span class="t-subhead secondary">{{ 'ws.batch.reviewedBy' | t: { who: b.reviewedBy, when: i18n.dateTime(b.reviewedAt) } }}</span>
           }
         </div>
+
+        <section class="card verify-card">
+          <div class="grow">
+            <div class="t-headline">{{ 'ws.report.verifyTitle' | t }}</div>
+            <div class="t-footnote secondary">{{ 'ws.report.verifyHelp' | t }}</div>
+          </div>
+          <input class="input signature" [(ngModel)]="verifySignature" [placeholder]="'ws.report.signature' | t" />
+          <button class="btn btn-tinted" type="button" (click)="verifyReport()" [disabled]="!verifySignature.trim()">{{ 'ws.report.verify' | t }}</button>
+          @if (verification(); as result) {
+            <div class="verification" [class.valid]="result.valid" [class.invalid]="!result.valid">
+              <app-icon [name]="result.valid ? 'check' : 'warning'" />
+              <span>{{ (result.valid ? 'ws.report.valid' : 'ws.report.invalid') | t }}</span>
+              @if (result.valid) {<small>{{ result.fileName }} · {{ i18n.dateTime(result.exportedAt) }}</small>}
+            </div>
+          }
+        </section>
 
         @if (b.status === 'RECONCILED') {
           <div class="decide card card-raised">
@@ -100,6 +116,13 @@ import { Status } from '../../ui/status';
   `,
   styles: `
     .status-line { gap: 6px 14px; margin: -6px 0 20px; }
+    .verify-card { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .verify-card .grow { flex: 1; min-width: 220px; }
+    .signature { width: min(100%, 390px); font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+    .verification { width: 100%; display: flex; align-items: center; gap: 8px; font-weight: 650; }
+    .verification.valid { color: var(--green); }
+    .verification.invalid { color: var(--red); }
+    .verification small { color: var(--label-2); font-weight: 400; }
     .decide { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; --icon-size: 28px; animation: rise var(--dur-3) var(--spring); }
     .decide > app-icon { color: var(--tint); }
     .decide .grow { flex: 1; min-width: 220px; }
@@ -126,6 +149,8 @@ export class BatchPage {
   protected closeStatus = 'RESOLVED';
   protected note = '';
   protected reason = '';
+  protected verifySignature = '';
+  protected verification = signal<FinanceReportVerification | null>(null);
 
   constructor() {
     effect(() => this.load(this.id()));
@@ -147,6 +172,18 @@ export class BatchPage {
 
   protected downloadReport() {
     this.api.download(`/fin/batches/${this.id()}/reconciliation-report`, `iccp-finance-reconciliation-${this.id()}.csv`);
+  }
+
+  protected verifyReport() {
+    const signature = this.verifySignature.trim();
+    if (!signature) return;
+    this.api.get<FinanceReportVerification>(`/fin/reports/verify/${encodeURIComponent(signature)}`).subscribe({
+      next: (result) => this.verification.set(result),
+      error: (e) => {
+        this.verification.set(null);
+        this.toasts.error(e);
+      },
+    });
   }
 
   protected error(q: QuarantineItem): string | null {

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import tz.go.tirdo.iccp.fin.FinTypes;
 import tz.go.tirdo.iccp.fin.FinanceBatchService;
-import tz.go.tirdo.iccp.fin.FinanceBatchCsvReport;
+import tz.go.tirdo.iccp.fin.FinanceReportExportService;
 import tz.go.tirdo.iccp.fin.FinanceCsvTemplate;
 import tz.go.tirdo.iccp.fin.FinanceImportService;
 import tz.go.tirdo.iccp.fin.FinancialDiaryService;
@@ -43,12 +43,15 @@ public class FinanceController {
     private final FinanceImportService imports;
     private final FinanceBatchService batches;
     private final FinanceStatementPdf statements;
+    private final FinanceReportExportService reports;
 
-    public FinanceController(FinancialDiaryService diary, FinanceImportService imports, FinanceBatchService batches, FinanceStatementPdf statements) {
+    public FinanceController(FinancialDiaryService diary, FinanceImportService imports, FinanceBatchService batches,
+                             FinanceStatementPdf statements, FinanceReportExportService reports) {
         this.diary = diary;
         this.imports = imports;
         this.batches = batches;
         this.statements = statements;
+        this.reports = reports;
     }
 
     // ---------------------------------------------------------------- staff diary
@@ -174,14 +177,18 @@ public class FinanceController {
 
     @GetMapping(value = "/batches/{id}/reconciliation-report", produces = "text/csv")
     public ResponseEntity<byte[]> reconciliationReport(@PathVariable UUID id) {
-        FinanceBatchCsvReport.Generated report = FinanceBatchCsvReport.generate(batches.batch(id), batches.quarantine(id, false));
-        byte[] csv = ("\uFEFF" + report.content()).getBytes(StandardCharsets.UTF_8);
+        FinanceReportExportService.Exported report = reports.reconciliation(id);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=iccp-finance-reconciliation-" + id + ".csv")
                 .header("X-Report-Signature", report.signature())
                 .header("Cache-Control", "private, no-store")
-                .body(csv);
+                .body(report.content());
+    }
+
+    @GetMapping("/reports/verify/{signature}")
+    public FinanceReportExportService.Verification verifyReport(@PathVariable String signature) {
+        return reports.verify(signature);
     }
 
     @GetMapping("/batches/{id}/quarantine")

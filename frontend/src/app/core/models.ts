@@ -429,6 +429,17 @@ export interface QuarantineItem {
   resolvedAt?: string;
 }
 
+export interface FinanceReportVerification {
+  signature: string;
+  valid: boolean;
+  batchPublicId?: string;
+  fileName?: string;
+  batchStatus?: string;
+  reportType?: string;
+  exportedBy?: string;
+  exportedAt?: string;
+}
+
 export interface PendingAllocation {
   id: number;
   paymentSourceRef: string;

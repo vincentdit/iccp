@@ -1,8 +1,5 @@
 package tz.go.tirdo.iccp.fin;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 /** Creates a flat, Excel-friendly reconciliation record for one Finance import batch. */
@@ -14,8 +11,7 @@ public final class FinanceBatchCsvReport {
     public record Generated(String signature, String content) {
     }
 
-    public static Generated generate(FinTypes.Batch batch, List<FinTypes.QuarantineItem> quarantine) {
-        String signature = signature(batch);
+    public static Generated generate(FinTypes.Batch batch, List<FinTypes.QuarantineItem> quarantine, String signature) {
         StringBuilder csv = new StringBuilder();
         row(csv, "record_type", "report_signature", "batch_id", "file_name", "batch_status", "feed_type",
                 "source_record_count", "source_amount_total", "loaded_count", "quarantined_count", "open_quarantine",
@@ -33,17 +29,6 @@ public final class FinanceBatchCsvReport {
                     item.resolvedBy(), item.resolvedAt(), item.payload());
         }
         return new Generated(signature, csv.toString());
-    }
-
-    private static String signature(FinTypes.Batch batch) {
-        try {
-            String seed = batch.publicId() + "|" + batch.createdAt() + "|" + batch.status() + "|" + batch.loadedCount()
-                    + "|" + batch.quarantinedCount();
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(seed.getBytes(StandardCharsets.UTF_8));
-            return "ICCP-FIN-REC-" + java.util.HexFormat.of().formatHex(digest, 0, 8).toUpperCase();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
-        }
     }
 
     private static void row(StringBuilder csv, Object... cells) {

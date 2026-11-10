@@ -20,10 +20,11 @@ class FinanceBatchCsvReportTest {
         FinTypes.QuarantineItem item = new FinTypes.QuarantineItem(7, 4, "UNKNOWN_STAFF", "{\"employeeNo\":\"TR9999\"}",
                 "RESOLVED", "Corrected at source, pending next feed", "finance-maker", at);
 
-        FinanceBatchCsvReport.Generated first = FinanceBatchCsvReport.generate(batch, List.of(item));
-        FinanceBatchCsvReport.Generated second = FinanceBatchCsvReport.generate(batch, List.of(item));
+        String signature = "ICCP-FIN-REC-0123456789ABCDEF0123456789ABCDEF";
+        FinanceBatchCsvReport.Generated first = FinanceBatchCsvReport.generate(batch, List.of(item), signature);
+        FinanceBatchCsvReport.Generated second = FinanceBatchCsvReport.generate(batch, List.of(item), signature);
 
-        assertThat(first.signature()).matches("ICCP-FIN-REC-[0-9A-F]{16}").isEqualTo(second.signature());
+        assertThat(first.signature()).isEqualTo(signature).isEqualTo(second.signature());
         assertThat(first.content()).contains("\"BATCH\"", "\"QUARANTINE\"", "\"UNKNOWN_STAFF\"",
                 "\"Corrected at source, pending next feed\"", "\"staff,diary.csv\"");
         assertThat(first.content().lines()).hasSize(3);
