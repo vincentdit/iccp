@@ -17,7 +17,9 @@ import { Status } from '../../ui/status';
   template: `
     <div class="page">
       @if (b(); as b) {
-        <app-page-header [title]="b.fileName" back="/finance/workspace" [backLabel]="'nav.financeWorkspace' | t" />
+        <app-page-header [title]="b.fileName" back="/finance/workspace" [backLabel]="'nav.financeWorkspace' | t">
+          <button class="btn" type="button" (click)="downloadReport()"><app-icon name="download" /> {{ 'ws.batch.downloadReport' | t }}</button>
+        </app-page-header>
         <div class="row wrap status-line">
           <app-status [value]="b.status" />
           <span class="t-subhead secondary">{{ 'ws.batch.importedBy' | t: { who: b.importedBy, when: i18n.dateTime(b.createdAt) } }}</span>
@@ -141,6 +143,10 @@ export class BatchPage {
     } catch {
       return '';
     }
+  }
+
+  protected downloadReport() {
+    this.api.download(`/fin/batches/${this.id()}/reconciliation-report`, `iccp-finance-reconciliation-${this.id()}.csv`);
   }
 
   protected error(q: QuarantineItem): string | null {

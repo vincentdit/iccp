@@ -407,6 +407,7 @@ export const DICTIONARY: Record<string, Entry> = {
   'ws.batch.discard': { en: 'Discard', sw: 'Tupa' },
   'ws.batch.note': { en: 'Note', sw: 'Maelezo' },
   'ws.batch.itemClosed': { en: 'Row closed', sw: 'Mstari umefungwa' },
+  'ws.batch.downloadReport': { en: 'Download reconciliation report', sw: 'Pakua ripoti ya upatanisho' },
   'ws.desk.active': { en: 'Open', sw: 'Zilizo wazi' },
   'ws.desk.overdue': { en: 'Overdue', sw: 'Zimechelewa' },
   'ws.desk.ESCALATED': { en: 'Escalated', sw: 'Zimepelekwa juu' },
