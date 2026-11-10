@@ -191,6 +191,11 @@ public class FinanceController {
         return reports.verify(signature);
     }
 
+    @PostMapping(value = "/reports/verify-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public FinanceReportExportService.FileVerification verifyReportFile(@RequestPart("file") MultipartFile file) throws IOException {
+        return reports.verifyFile(file.getBytes());
+    }
+
     @GetMapping("/batches/{id}/quarantine")
     public List<FinTypes.QuarantineItem> quarantine(@PathVariable UUID id, @RequestParam(defaultValue = "false") boolean openOnly) {
         return batches.quarantine(id, openOnly);

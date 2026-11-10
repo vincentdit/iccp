@@ -14,9 +14,14 @@ import java.time.OffsetDateTime;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class FinanceReportExportService {
+
+    private static final Pattern REPORT_SIGNATURE = Pattern.compile("ICCP-FIN-REC-[0-9A-F]{32}");
+    private static final int MAX_VERIFY_BYTES = 5 * 1024 * 1024;
 
     private final JdbcClient jdbc;
     private final FinanceBatchService batches;
@@ -35,8 +40,16 @@ public class FinanceReportExportService {
                                String reportType, String exportedBy, OffsetDateTime exportedAt) {
     }
 
+    public record FileVerification(String signature, String status, boolean valid, UUID batchPublicId, String fileName,
+                                   String batchStatus, String reportType, String exportedBy, OffsetDateTime exportedAt) {
+    }
+
     private record VerificationRow(String signature, UUID batchPublicId, String fileName, String batchStatus,
                                    String reportType, String exportedBy, OffsetDateTime exportedAt) {
+    }
+
+    private record FileVerificationRow(String signature, String contentSha256, UUID batchPublicId, String fileName,
+                                       String batchStatus, String reportType, String exportedBy, OffsetDateTime exportedAt) {
     }
 
     @Transactional
@@ -72,6 +85,41 @@ public class FinanceReportExportService {
                 .map(r -> new Verification(r.signature(), true, r.batchPublicId(), r.fileName(), r.batchStatus(),
                         r.reportType(), r.exportedBy(), r.exportedAt()))
                 .orElse(new Verification(normalized, false, null, null, null, null, null, null));
+    }
+
+    @Transactional
+    public FileVerification verifyFile(byte[] content) {
+        FinanceBatchService.requireFinance();
+        if (content == null || content.length == 0 || content.length > MAX_VERIFY_BYTES) {
+            throw ApiException.badRequest("ICCP-FIN-032", "Choose a non-empty reconciliation CSV of no more than 5 MB.");
+        }
+        String signature = extractSignature(content);
+        if (signature == null) {
+            audit.record("FIN", "RECONCILIATION_REPORT_VERIFY", "report_export", null, Map.of("status", "MALFORMED"));
+            return new FileVerification(null, "MALFORMED", false, null, null, null, null, null, null);
+        }
+        FileVerificationRow row = jdbc.sql("""
+                SELECT e.signature, e.content_sha256, b.public_id AS batch_public_id, b.file_name, b.status AS batch_status,
+                       e.report_type, e.exported_by, e.exported_at
+                  FROM fin.report_export e JOIN fin.import_batch b ON b.id = e.batch_id
+                 WHERE e.signature = :signature
+                """).param("signature", signature).query(FileVerificationRow.class).optional().orElse(null);
+        if (row == null) {
+            audit.record("FIN", "RECONCILIATION_REPORT_VERIFY", "report_export", signature,
+                    Map.of("status", "UNKNOWN_SIGNATURE"));
+            return new FileVerification(signature, "UNKNOWN_SIGNATURE", false, null, null, null, null, null, null);
+        }
+        boolean matches = row.contentSha256().equals(sha256(content));
+        String status = matches ? "VALID" : "TAMPERED";
+        audit.record("FIN", "RECONCILIATION_REPORT_VERIFY", "report_export", signature, Map.of("status", status));
+        return new FileVerification(signature, status, matches, row.batchPublicId(), row.fileName(), row.batchStatus(),
+                row.reportType(), row.exportedBy(), row.exportedAt());
+    }
+
+    static String extractSignature(byte[] content) {
+        String text = new String(content, StandardCharsets.UTF_8).toUpperCase();
+        Matcher matcher = REPORT_SIGNATURE.matcher(text);
+        return matcher.find() ? matcher.group() : null;
     }
 
     private static String sha256(byte[] content) {

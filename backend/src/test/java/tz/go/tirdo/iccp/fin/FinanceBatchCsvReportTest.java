@@ -3,6 +3,7 @@ package tz.go.tirdo.iccp.fin;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -28,5 +29,15 @@ class FinanceBatchCsvReportTest {
         assertThat(first.content()).contains("\"BATCH\"", "\"QUARANTINE\"", "\"UNKNOWN_STAFF\"",
                 "\"Corrected at source, pending next feed\"", "\"staff,diary.csv\"");
         assertThat(first.content().lines()).hasSize(3);
+    }
+
+    @Test
+    void extractsTheEmbeddedSignatureForIntegrityVerification() {
+        byte[] content = ("\uFEFF\"record_type\",\"report_signature\"\r\n\"BATCH\","
+                + "\"ICCP-FIN-REC-0123456789ABCDEF0123456789ABCDEF\"\r\n").getBytes(StandardCharsets.UTF_8);
+
+        assertThat(FinanceReportExportService.extractSignature(content))
+                .isEqualTo("ICCP-FIN-REC-0123456789ABCDEF0123456789ABCDEF");
+        assertThat(FinanceReportExportService.extractSignature("not a report".getBytes(StandardCharsets.UTF_8))).isNull();
     }
 }

@@ -440,6 +440,10 @@ export interface FinanceReportVerification {
   exportedAt?: string;
 }
 
+export interface FinanceReportFileVerification extends FinanceReportVerification {
+  status: 'VALID' | 'TAMPERED' | 'UNKNOWN_SIGNATURE' | 'MALFORMED';
+}
+
 export interface PendingAllocation {
   id: number;
   paymentSourceRef: string;

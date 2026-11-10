@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms';
 import { Api } from '../../core/api.service';
 import { I18n, TPipe } from '../../core/i18n.service';
-import { Batch, FinanceReportVerification, QuarantineItem } from '../../core/models';
+import { Batch, FinanceReportFileVerification, FinanceReportVerification, QuarantineItem } from '../../core/models';
 import { Session } from '../../core/session.service';
 import { Toasts } from '../../core/toast.service';
 import { Icon } from '../../ui/icon';
@@ -40,6 +40,20 @@ import { Status } from '../../ui/status';
               <app-icon [name]="result.valid ? 'check' : 'warning'" />
               <span>{{ (result.valid ? 'ws.report.valid' : 'ws.report.invalid') | t }}</span>
               @if (result.valid) {<small>{{ result.fileName }} · {{ i18n.dateTime(result.exportedAt) }}</small>}
+            </div>
+          }
+          <div class="file-check">
+            <label class="btn btn-tinted">
+              <app-icon name="upload" /> {{ 'ws.report.verifyFile' | t }}
+              <input type="file" accept=".csv,text/csv" class="visually-hidden" #reportFile (change)="verifyReportFile(reportFile)" />
+            </label>
+            <span class="t-footnote secondary">{{ 'ws.report.verifyFileHelp' | t }}</span>
+          </div>
+          @if (fileVerification(); as result) {
+            <div class="verification" [class.valid]="result.status === 'VALID'" [class.invalid]="result.status !== 'VALID'">
+              <app-icon [name]="result.status === 'VALID' ? 'check' : 'warning'" />
+              <span>{{ ('ws.report.file.' + result.status) | t }}</span>
+              @if (result.fileName) {<small>{{ result.fileName }} · {{ i18n.dateTime(result.exportedAt) }}</small>}
             </div>
           }
         </section>
@@ -123,6 +137,7 @@ import { Status } from '../../ui/status';
     .verification.valid { color: var(--green); }
     .verification.invalid { color: var(--red); }
     .verification small { color: var(--label-2); font-weight: 400; }
+    .file-check { width: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 4px; border-top: 1px solid var(--separator); }
     .decide { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; --icon-size: 28px; animation: rise var(--dur-3) var(--spring); }
     .decide > app-icon { color: var(--tint); }
     .decide .grow { flex: 1; min-width: 220px; }
@@ -151,6 +166,7 @@ export class BatchPage {
   protected reason = '';
   protected verifySignature = '';
   protected verification = signal<FinanceReportVerification | null>(null);
+  protected fileVerification = signal<FinanceReportFileVerification | null>(null);
 
   constructor() {
     effect(() => this.load(this.id()));
@@ -181,6 +197,19 @@ export class BatchPage {
       next: (result) => this.verification.set(result),
       error: (e) => {
         this.verification.set(null);
+        this.toasts.error(e);
+      },
+    });
+  }
+
+  protected verifyReportFile(input: HTMLInputElement) {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.api.upload<FinanceReportFileVerification>('/fin/reports/verify-file', file).subscribe({
+      next: (result) => this.fileVerification.set(result),
+      error: (e) => {
+        this.fileVerification.set(null);
         this.toasts.error(e);
       },
     });
